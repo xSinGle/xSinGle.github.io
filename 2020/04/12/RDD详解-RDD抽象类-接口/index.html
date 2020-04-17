@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="RDD抽象类内容较多，这里选择分类进行解析。首先是接口，RDD抽象类定义了4个接口，compute,getPartitions,getDependencies,getPreferredLocations，分别用于计算RDD分区，获取RDD分区，获取RDD依赖，获取分区偏好位置。除getPreferredLocations外，皆由子类进行实现。 compute对RDD的分区进行计算*”由子类实现 计">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RDD详解[RDD抽象类][接口]">
+<meta property="og:url" content="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="RDD抽象类内容较多，这里选择分类进行解析。首先是接口，RDD抽象类定义了4个接口，compute,getPartitions,getDependencies,getPreferredLocations，分别用于计算RDD分区，获取RDD分区，获取RDD依赖，获取分区偏好位置。除getPreferredLocations外，皆由子类进行实现。 compute对RDD的分区进行计算*”由子类实现 计">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/%5BRDD%E6%8A%BD%E8%B1%A1%E7%B1%BB%5D%5B%E6%8E%A5%E5%8F%A3%5D.png">
+<meta property="article:published_time" content="2020-04-12T14:30:45.000Z">
+<meta property="article:modified_time" content="2020-04-12T14:42:24.567Z">
+<meta property="article:author" content="SinGle IP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/%5BRDD%E6%8A%BD%E8%B1%A1%E7%B1%BB%5D%5B%E6%8E%A5%E5%8F%A3%5D.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>RDD详解[RDD抽象类][接口]</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2020/04/13/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E5%B1%9E%E6%80%A7/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BE%9D%E8%B5%96-Denpendency/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/" target="_blank" rel="noopener"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&text=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&is_video=false&description=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=RDD详解[RDD抽象类][接口]&body=Check out this article: http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&name=RDD详解[RDD抽象类][接口]&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&t=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#compute"><span class="toc-number">1.</span> <span class="toc-text">compute</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getPartitions"><span class="toc-number">2.</span> <span class="toc-text">getPartitions</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getDependencies"><span class="toc-number">3.</span> <span class="toc-text">getDependencies</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getPreferredLocations"><span class="toc-number">4.</span> <span class="toc-text">getPreferredLocations</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        RDD详解[RDD抽象类][接口]
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">SinGle's Cabin</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-04-12T14:30:45.000Z" itemprop="datePublished">2020-04-12</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <p><img src="/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/%5BRDD%E6%8A%BD%E8%B1%A1%E7%B1%BB%5D%5B%E6%8E%A5%E5%8F%A3%5D.png" alt="[RDD抽象类][接口]"><br>RDD抽象类内容较多，这里选择分类进行解析。首先是接口，RDD抽象类定义了4个接口，<strong>compute</strong>,<strong>getPartitions</strong>,<strong>getDependencies</strong>,<strong>getPreferredLocations</strong>，分别用于<strong>计算RDD分区</strong>，<strong>获取RDD分区</strong>，<strong>获取RDD依赖</strong>，<strong>获取分区偏好位置</strong>。除getPreferredLocations外，皆由子类进行实现。</p>
+<h2 id="compute"><a href="#compute" class="headerlink" title="compute"></a><strong>compute</strong></h2><p><strong>对RDD的分区进行计算</strong><br>*”由子类实现 计算所提供的分区”*</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment">* :: DeveloperApi :: </span></span><br><span class="line"><span class="comment">* Implemented by subclasses to compute a given partition.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="meta">@DeveloperApi</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">compute</span></span>(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[<span class="type">T</span>]</span><br></pre></td></tr></table></figure>
+
+<h2 id="getPartitions"><a href="#getPartitions" class="headerlink" title="getPartitions"></a><strong>getPartitions</strong></h2><p><strong>获取当前RDD的所有分区</strong><br>“由子类实现 返回该RDD的所有分区的数组”</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Implemented by subclasses to return the set of partitions in this RDD. */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>]</span><br></pre></td></tr></table></figure>
+
+<h2 id="getDependencies"><a href="#getDependencies" class="headerlink" title="getDependencies"></a><strong>getDependencies</strong></h2><p><strong>返回当前RDD的所有依赖</strong></p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Implemented by subclasses to return how this RDD depends on parent RDDs.*/</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getDependencies</span></span>: <span class="type">Seq</span>[<span class="type">Dependency</span>[_]] = deps</span><br></pre></td></tr></table></figure>
+
+<h2 id="getPreferredLocations"><a href="#getPreferredLocations" class="headerlink" title="getPreferredLocations"></a><strong>getPreferredLocations</strong></h2><p><strong>获取某一分区的偏好位置</strong><br>“(可选)可由子类重写 指明优先选取的位置”</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*Optionally overridden by subclasses to specify placement preferences.*/</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPreferredLocations</span></span>(split: <span class="type">Partition</span>): <span class="type">Seq</span>[<span class="type">String</span>] = <span class="type">Nil</span></span><br></pre></td></tr></table></figure>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#compute"><span class="toc-number">1.</span> <span class="toc-text">compute</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getPartitions"><span class="toc-number">2.</span> <span class="toc-text">getPartitions</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getDependencies"><span class="toc-number">3.</span> <span class="toc-text">getDependencies</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#getPreferredLocations"><span class="toc-number">4.</span> <span class="toc-text">getPreferredLocations</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/" target="_blank" rel="noopener"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&text=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&is_video=false&description=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=RDD详解[RDD抽象类][接口]&body=Check out this article: http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&title=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&name=RDD详解[RDD抽象类][接口]&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/&t=RDD详解[RDD抽象类][接口]" target="_blank" rel="noopener"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2020
+    SinGle IP
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>
