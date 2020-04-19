@@ -6,16 +6,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="HandheldFriendly" content="True">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <meta name="description" content="“RDDInfo用于描述RDD的信息” 属性   Property Description    id RDD的id   name RDD的名称   numPartitions RDD的分区数量   storageLevel RDD的存储级别，即StorageLevel   callSite RDD的用户调用栈信息   scope RDD的操作范围。scope的类型为RDDOperationSc">
+    <meta name="description" content="“RDDInfo用于描述RDD的基本信息，包括内存磁盘缓存资源使用，作用域调用栈内容，以及分区数量存储级别等基本信息。” 属性   Property Description    id RDD的id   name RDD的名称   numPartitions RDD的分区数量   storageLevel RDD的存储级别，即StorageLevel   callSite RDD的用户调用栈信息">
 <meta property="og:type" content="article">
 <meta property="og:title" content="RDD详解[RDD信息][RDDInfo]">
 <meta property="og:url" content="http://localhost:4000/2020/04/19/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BF%A1%E6%81%AF-RDDInfo/index.html">
 <meta property="og:site_name" content="SinGle&#39;s Cabin">
-<meta property="og:description" content="“RDDInfo用于描述RDD的信息” 属性   Property Description    id RDD的id   name RDD的名称   numPartitions RDD的分区数量   storageLevel RDD的存储级别，即StorageLevel   callSite RDD的用户调用栈信息   scope RDD的操作范围。scope的类型为RDDOperationSc">
+<meta property="og:description" content="“RDDInfo用于描述RDD的基本信息，包括内存磁盘缓存资源使用，作用域调用栈内容，以及分区数量存储级别等基本信息。” 属性   Property Description    id RDD的id   name RDD的名称   numPartitions RDD的分区数量   storageLevel RDD的存储级别，即StorageLevel   callSite RDD的用户调用栈信息">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="http://localhost:4000/2020/04/19/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BF%A1%E6%81%AF-RDDInfo/%5BRDD%E4%BF%A1%E6%81%AF%5D%5BRDDInfo%5D.png">
 <meta property="article:published_time" content="2020-04-19T06:13:41.000Z">
-<meta property="article:modified_time" content="2020-04-19T06:14:30.396Z">
+<meta property="article:modified_time" content="2020-04-19T06:41:27.106Z">
 <meta property="article:author" content="SinGle IP">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://localhost:4000/2020/04/19/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BF%A1%E6%81%AF-RDDInfo/%5BRDD%E4%BF%A1%E6%81%AF%5D%5BRDDInfo%5D.png">
@@ -147,7 +147,7 @@
 
   <div class="content" itemprop="articleBody">
     <p><img src="/2020/04/19/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BF%A1%E6%81%AF-RDDInfo/%5BRDD%E4%BF%A1%E6%81%AF%5D%5BRDDInfo%5D.png" alt="[RDD信息][RDDInfo]"></p>
-<p><strong>“RDDInfo用于描述RDD的信息”</strong></p>
+<p><strong>“RDDInfo用于描述RDD的基本信息，包括内存磁盘缓存资源使用，作用域调用栈内容，以及分区数量存储级别等基本信息。”</strong></p>
 <h2 id="属性"><a href="#属性" class="headerlink" title="属性"></a>属性</h2><table>
 <thead>
 <tr>
@@ -196,7 +196,7 @@
 <td>Block存储在外部的大小</td>
 </tr>
 </tbody></table>
-<h2 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h2><h3 id="isCached"><a href="#isCached" class="headerlink" title="isCached"></a>isCached</h3><p><strong>是否已经缓存 返回布尔值</strong><br><strong>*”如果内存使用量+磁盘使用量大于0 且 缓存的分区数量大于0 则返回True”*</strong></p>
+<h2 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h2><h3 id="isCached"><a href="#isCached" class="headerlink" title="isCached"></a>isCached</h3><p><strong>是否已经缓存 返回布尔值</strong><br><strong>“如果内存使用量+磁盘使用量大于0 且 缓存的分区数量大于0 则返回True”</strong></p>
 <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">isCached</span></span>: <span class="type">Boolean</span> = (memSize + diskSize &gt; <span class="number">0</span>) &amp;&amp; numCachedPartitions &gt; <span class="number">0</span></span><br></pre></td></tr></table></figure>
 
 <h3 id="compare"><a href="#compare" class="headerlink" title="compare"></a>compare</h3><p><strong>RDDInfo继承了Ordered 重写了compare方法用于排序</strong></p>
