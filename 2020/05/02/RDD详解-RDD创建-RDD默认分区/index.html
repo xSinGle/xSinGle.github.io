@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="RDD详解[RDD创建][RDD默认分区]本文主要探讨两个问题  RDD根据不同数据源的创建方式 RDD被创建时的分区数量是如何定义的  创建RDD首先根据官网的描述，Spark可以根据任何Hadoop支持的文件系统作为数据源对RDD进行创建，如本地文件系统、HDFS、HBase、S3、text file、SequenceFiles等等。这里根据笔者生产环境涉及的情况进行说明。  程序中的集合 本">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RDD详解[RDD创建][RDD默认分区]">
+<meta property="og:url" content="http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="RDD详解[RDD创建][RDD默认分区]本文主要探讨两个问题  RDD根据不同数据源的创建方式 RDD被创建时的分区数量是如何定义的  创建RDD首先根据官网的描述，Spark可以根据任何Hadoop支持的文件系统作为数据源对RDD进行创建，如本地文件系统、HDFS、HBase、S3、text file、SequenceFiles等等。这里根据笔者生产环境涉及的情况进行说明。  程序中的集合 本">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-02T06:58:39.000Z">
+<meta property="article:modified_time" content="2020-05-02T07:04:02.629Z">
+<meta property="article:author" content="SinGle IP">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>RDD详解[RDD创建][RDD默认分区]</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/04/19/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BF%A1%E6%81%AF-RDDInfo/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/" target="_blank" rel="noopener"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&text=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&is_video=false&description=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=RDD详解[RDD创建][RDD默认分区]&body=Check out this article: http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&name=RDD详解[RDD创建][RDD默认分区]&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&t=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#RDD详解-RDD创建-RDD默认分区"><span class="toc-number">1.</span> <span class="toc-text">RDD详解[RDD创建][RDD默认分区]</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#创建RDD"><span class="toc-number">1.1.</span> <span class="toc-text">创建RDD</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#程序中的集合"><span class="toc-number">1.1.1.</span> <span class="toc-text">程序中的集合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#本地文件与HDFS文件"><span class="toc-number">1.1.2.</span> <span class="toc-text">本地文件与HDFS文件</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#分区数量定义"><span class="toc-number">1.2.</span> <span class="toc-text">分区数量定义</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#parallelize"><span class="toc-number">1.2.1.</span> <span class="toc-text">parallelize</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#textFile"><span class="toc-number">1.2.2.</span> <span class="toc-text">textFile</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        RDD详解[RDD创建][RDD默认分区]
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">SinGle's Cabin</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-05-02T06:58:39.000Z" itemprop="datePublished">2020-05-02</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="RDD详解-RDD创建-RDD默认分区"><a href="#RDD详解-RDD创建-RDD默认分区" class="headerlink" title="RDD详解[RDD创建][RDD默认分区]"></a>RDD详解[RDD创建][RDD默认分区]</h1><p>本文主要探讨两个问题</p>
+<ol>
+<li>RDD根据不同数据源的创建方式</li>
+<li>RDD被创建时的分区数量是如何定义的</li>
+</ol>
+<h2 id="创建RDD"><a href="#创建RDD" class="headerlink" title="创建RDD"></a>创建RDD</h2><p>首先根据官网的描述，Spark可以根据任何Hadoop支持的文件系统作为数据源对RDD进行创建，如本地文件系统、HDFS、HBase、S3、text file、SequenceFiles等等。这里根据笔者生产环境涉及的情况进行说明。</p>
+<ul>
+<li>程序中的集合</li>
+<li>本地文件与HDFS文件</li>
+</ul>
+<h3 id="程序中的集合"><a href="#程序中的集合" class="headerlink" title="程序中的集合"></a>程序中的集合</h3><p>Spark的<strong>parallelize</strong>方法支持根据程序中的集合生成RDD对象。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> data = <span class="type">Array</span>(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>)</span><br><span class="line"><span class="keyword">val</span> distData = sc.parallelize(data)</span><br><span class="line"><span class="keyword">val</span> dataSum = distData.reduce(a, b =&gt; a+b)</span><br></pre></td></tr></table></figure>
+
+<p>如代码所示，distData就是根据集合data生成的RDD对象，该RDD可以调用算子实现并行执行，如调用reduce对数组进行求和。</p>
+<h3 id="本地文件与HDFS文件"><a href="#本地文件与HDFS文件" class="headerlink" title="本地文件与HDFS文件"></a>本地文件与HDFS文件</h3><p>Spark的<strong>textFile</strong>方法可以对文本类型的RDD进行创建。入参为数据源的URI，如本地文件为”file://local/textfile/path”，HDFS文件则为”hdfs://textfile/path”，同理可得”s3://“等等。返回含有String类型的RDD对象。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> distFile = sc.textFile(<span class="string">"file://local/textfile/path.txt"</span>)</span><br><span class="line"><span class="keyword">val</span> distFile2 = sc.textFile(<span class="string">"hdfs://schema-hdfs/textfile/path.txt"</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="分区数量定义"><a href="#分区数量定义" class="headerlink" title="分区数量定义"></a>分区数量定义</h2><h3 id="parallelize"><a href="#parallelize" class="headerlink" title="parallelize"></a>parallelize</h3><p>从源码入手，首先看到<strong>parallelize</strong>(org.apache.spark.SparkContext.scala)。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">parallelize</span></span>[<span class="type">T</span>: <span class="type">ClassTag</span>](</span><br><span class="line">    seq: <span class="type">Seq</span>[<span class="type">T</span>],</span><br><span class="line">    numSlices: <span class="type">Int</span> = defaultParallelism): <span class="type">RDD</span>[<span class="type">T</span>] = withScope &#123;</span><br><span class="line">  assertNotStopped()</span><br><span class="line">  <span class="keyword">new</span> <span class="type">ParallelCollectionRDD</span>[<span class="type">T</span>](<span class="keyword">this</span>, seq, numSlices, <span class="type">Map</span>[<span class="type">Int</span>, <span class="type">Seq</span>[<span class="type">String</span>]]())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>该方法为惰性方法(lazy)，如果传入的seq是可变的(mutable)数据集合，在parallelize创建RDD之后并在触发action算子之前有一系列的修改操作(如transformation)，那么RDD只会记录这一系列的变化，直到触发action才会真正开始计算并生成对应的RDD。</li>
+<li><strong>numSlices</strong>参数，用户可以指定该数据集合被切分为几个分区，也就是生成RDD后的partition数量。其默认值为<strong>defaultParallelism</strong>值。</li>
+</ul>
+<p>此时就要引入本文重点配置参数<strong>spark.default.parallelism</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>Property Name</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Spark.default.parallelism</td>
+<td>For distributed shuffle operations like reduceByKey and join, the largest number of partitions in a parent RDD. For operations like parallelize with no parent RDDs, it depends on the cluster manager:                                                                                       <strong>Local mode</strong>: number of cores on the local machine                     <strong>Mesos</strong> fine grained mode: 8                                                         <strong>Others</strong>: total number of cores on all executor nodes or 2, whichever is larger.</td>
+<td>Default number of partitions in RDDs returned by transformations like <code>join</code>, <code>reduceByKey</code>, and <code>parallelize</code> when not set by user.</td>
+</tr>
+</tbody></table>
+<p>由官方配置参数解释可知，parallelize直接操作创建的RDD所拥有的分区数，如果没有手动指定，则取决于Spark App的部署模式。</p>
+<p><strong>本地模式(local):</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">spark-shell --master local           不指定核数 默认spark.default.parallelism为1</span><br><span class="line">spark-shell --master local[N]        指定核数为N 即spark.default.parallelism为N</span><br><span class="line">spark-shell --master local[*]        有多少用多少 等于机器的核数</span><br></pre></td></tr></table></figure>
+
+<p>此时又有一个疑惑，Spark是如何判断local模式下，对核数进行判断的？参照源码如下(org.apache.spark.SparkContext.scala)：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">  <span class="comment">// Spark会调用此方法进而调用createDriverEnv方法创建SparkEnv，其构造参数需要传入driver使用的核数</span></span><br><span class="line">  <span class="comment">// 即调用SparkContext的numDriverCores方法进行核数的获取</span></span><br><span class="line">  <span class="keyword">private</span>[spark] <span class="function"><span class="keyword">def</span> <span class="title">createSparkEnv</span></span>(</span><br><span class="line">      conf: <span class="type">SparkConf</span>,</span><br><span class="line">      isLocal: <span class="type">Boolean</span>,</span><br><span class="line">      listenerBus: <span class="type">LiveListenerBus</span>): <span class="type">SparkEnv</span> = &#123;</span><br><span class="line">    <span class="type">SparkEnv</span>.createDriverEnv(conf, isLocal, listenerBus, <span class="type">SparkContext</span>.numDriverCores(master, conf))</span><br><span class="line">  &#125;  </span><br><span class="line">  </span><br><span class="line">  <span class="keyword">private</span>[spark] <span class="function"><span class="keyword">def</span> <span class="title">numDriverCores</span></span>(master: <span class="type">String</span>, conf: <span class="type">SparkConf</span>): <span class="type">Int</span> = &#123;</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">convertToInt</span></span>(threads: <span class="type">String</span>): <span class="type">Int</span> = &#123;</span><br><span class="line">      <span class="keyword">if</span> (threads == <span class="string">"*"</span>) <span class="type">Runtime</span>.getRuntime.availableProcessors() <span class="keyword">else</span> threads.toInt</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 这里会对传入的参数进行正则匹配</span></span><br><span class="line">    master <span class="keyword">match</span> &#123;</span><br><span class="line">      <span class="comment">// 如果只是local，则默认返回1，即只会启动一个线程执行任务 所以默认并行度为1</span></span><br><span class="line">      <span class="keyword">case</span> <span class="string">"local"</span> =&gt; <span class="number">1</span></span><br><span class="line">      <span class="comment">// 正则匹配local后的数字，代表需要启动执行任务的线程数量</span></span><br><span class="line">      <span class="comment">// 如果是"*", 则获取JVM的进程数并返回，不能小于1</span></span><br><span class="line">      <span class="keyword">case</span> <span class="type">SparkMasterRegex</span>.<span class="type">LOCAL_N_REGEX</span>(threads) =&gt; convertToInt(threads)</span><br><span class="line">      <span class="comment">// 这里只是额外多添加了任务最大重试次数，道理同上</span></span><br><span class="line">      <span class="keyword">case</span> <span class="type">SparkMasterRegex</span>.<span class="type">LOCAL_N_FAILURES_REGEX</span>(threads, _) =&gt; convertToInt(threads)</span><br><span class="line">      <span class="comment">// 如果是yarn部署模式，cluster模式直接取spark.driver.cores，否则为0</span></span><br><span class="line">      <span class="keyword">case</span> <span class="string">"yarn"</span> =&gt;</span><br><span class="line">        <span class="keyword">if</span> (conf != <span class="literal">null</span> &amp;&amp; conf.getOption(<span class="string">"spark.submit.deployMode"</span>).contains(<span class="string">"cluster"</span>)) &#123;</span><br><span class="line">          conf.getInt(<span class="string">"spark.driver.cores"</span>, <span class="number">0</span>)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="number">0</span></span><br><span class="line">        &#125;</span><br><span class="line">      <span class="keyword">case</span> _ =&gt; <span class="number">0</span> <span class="comment">// Either driver is not being used, or its core count will be interpolated later</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// 以下是对LOCAL参数进行正则匹配的规则，一目了然，不做过多解释</span></span><br><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">object</span> <span class="title">SparkMasterRegex</span> </span>&#123;</span><br><span class="line">  <span class="comment">// Regular expression used for local[N] and local[*] master formats</span></span><br><span class="line">  <span class="keyword">val</span> <span class="type">LOCAL_N_REGEX</span> = <span class="string">""</span><span class="string">"local\[([0-9]+|\*)\]"</span><span class="string">""</span>.r</span><br><span class="line">  <span class="comment">// Regular expression for local[N, maxRetries], used in tests with failing tasks</span></span><br><span class="line">  <span class="keyword">val</span> <span class="type">LOCAL_N_FAILURES_REGEX</span> = <span class="string">""</span><span class="string">"local\[([0-9]+|\*)\s*,\s*([0-9]+)\]"</span><span class="string">""</span>.r</span><br><span class="line">  <span class="comment">// Regular expression for simulating a Spark cluster of [N, cores, memory] locally</span></span><br><span class="line">  <span class="keyword">val</span> <span class="type">LOCAL_CLUSTER_REGEX</span> = <span class="string">""</span><span class="string">"local-cluster\[\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*]"</span><span class="string">""</span>.r</span><br><span class="line">  <span class="comment">// Regular expression for connecting to Spark deploy clusters</span></span><br><span class="line">  <span class="keyword">val</span> <span class="type">SPARK_REGEX</span> = <span class="string">""</span><span class="string">"spark://(.*)"</span><span class="string">""</span>.r</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>YARN模式:</strong></p>
+<p>YARN部署模式的默认并行度spark.default.parallelism取决于所有executor节点核数的总和。如300个executor，每个executor 2核，则spark.default.parallelism=2*300=600。最小值为2。</p>
+<h3 id="textFile"><a href="#textFile" class="headerlink" title="textFile"></a>textFile</h3><p>(org.apache.spark.SparkContext.scala)</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">textFile</span></span>(</span><br><span class="line">      path: <span class="type">String</span>,</span><br><span class="line">      minPartitions: <span class="type">Int</span> = defaultMinPartitions): <span class="type">RDD</span>[<span class="type">String</span>] = withScope &#123;</span><br><span class="line">    assertNotStopped()</span><br><span class="line">    hadoopFile(path, classOf[<span class="type">TextInputFormat</span>], classOf[<span class="type">LongWritable</span>], classOf[<span class="type">Text</span>],</span><br><span class="line">      minPartitions).map(pair =&gt; pair._2.toString).setName(path)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">defaultMinPartitions</span></span>: <span class="type">Int</span> = math.min(defaultParallelism, <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<p>此处以读取HDFS数据为例，需要结合Spark以及Hadoop源码进行分析。首先从上述的textFile方法入手，其返回的为hadoopFile。(org.apache.spark.SparkContext.scala)</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hadoopFile</span></span>[<span class="type">K</span>, <span class="type">V</span>](</span><br><span class="line">    path: <span class="type">String</span>,</span><br><span class="line">    inputFormatClass: <span class="type">Class</span>[_ &lt;: <span class="type">InputFormat</span>[<span class="type">K</span>, <span class="type">V</span>]],</span><br><span class="line">    keyClass: <span class="type">Class</span>[<span class="type">K</span>],</span><br><span class="line">    valueClass: <span class="type">Class</span>[<span class="type">V</span>],</span><br><span class="line">    minPartitions: <span class="type">Int</span> = defaultMinPartitions): <span class="type">RDD</span>[(<span class="type">K</span>, <span class="type">V</span>)] = withScope &#123;</span><br><span class="line">  assertNotStopped()</span><br><span class="line"></span><br><span class="line">  <span class="type">FileSystem</span>.getLocal(hadoopConfiguration)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">val</span> confBroadcast = broadcast(<span class="keyword">new</span> <span class="type">SerializableConfiguration</span>(hadoopConfiguration))</span><br><span class="line">  <span class="keyword">val</span> setInputPathsFunc = (jobConf: <span class="type">JobConf</span>) =&gt; <span class="type">FileInputFormat</span>.setInputPaths(jobConf, path)</span><br><span class="line">  <span class="keyword">new</span> <span class="type">HadoopRDD</span>(</span><br><span class="line">    <span class="keyword">this</span>,</span><br><span class="line">    confBroadcast,</span><br><span class="line">    <span class="type">Some</span>(setInputPathsFunc),</span><br><span class="line">    inputFormatClass,</span><br><span class="line">    keyClass,</span><br><span class="line">    valueClass,</span><br><span class="line">    minPartitions).setName(path)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由hadoopFile可知，textFile方法返回的其实就是HadoopRDD。接下来就是重点，已知textFile方法不传递minPartitions参数，其默认的值最大不会超过2，也就是分区数量不会超过2个，那HadoopRDD是如何做到按照block大小决定分区数量的呢？</p>
+<p>回顾之前讲过的RDD抽象类的接口可知，getPartitions方法由子类实现，该方法返回一个数组，包含当前RDD的所有分区。显然，HadoopRDD继承了RDD抽象类，并重写了getParititons方法，用于获取该HadoopRDD的分区数组。(org.apache.spark.HadoopRDD.scala)</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>] = &#123;</span><br><span class="line">  <span class="keyword">val</span> jobConf = getJobConf()</span><br><span class="line">  <span class="comment">// add the credentials here as this can be called before SparkContext initialized</span></span><br><span class="line">  <span class="type">SparkHadoopUtil</span>.get.addCredentials(jobConf)</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// 首先调用getSplits方法获取HDFS输入数据的所有分片信息</span></span><br><span class="line">    <span class="keyword">val</span> allInputSplits = getInputFormat(jobConf).getSplits(jobConf, minPartitions)</span><br><span class="line">    <span class="comment">// 过滤掉空的分片</span></span><br><span class="line">    <span class="keyword">val</span> inputSplits = <span class="keyword">if</span> (ignoreEmptySplits) &#123;</span><br><span class="line">      allInputSplits.filter(_.getLength &gt; <span class="number">0</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      allInputSplits</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 创建一个长度为非空分片数量的数组</span></span><br><span class="line">    <span class="keyword">val</span> array = <span class="keyword">new</span> <span class="type">Array</span>[<span class="type">Partition</span>](inputSplits.size)</span><br><span class="line">    <span class="comment">// 遍历该数组，用HadoopPartition进行填充 </span></span><br><span class="line">    <span class="comment">// id为RDD的id，i为数组下标，inputSplits(i)为具体的分片数据信息</span></span><br><span class="line">    <span class="keyword">for</span> (i &lt;- <span class="number">0</span> until inputSplits.size) &#123;</span><br><span class="line">      array(i) = <span class="keyword">new</span> <span class="type">HadoopPartition</span>(id, i, inputSplits(i))</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 返回该数组</span></span><br><span class="line">    array</span><br><span class="line">  &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> e: <span class="type">InvalidInputException</span> <span class="keyword">if</span> ignoreMissingFiles =&gt;</span><br><span class="line">      logWarning(<span class="string">s"<span class="subst">$&#123;jobConf.get(FileInputFormat.INPUT_DIR)&#125;</span> doesn't exist and no"</span> +</span><br><span class="line">          <span class="string">s" partitions returned from this path."</span>, e)</span><br><span class="line">      <span class="type">Array</span>.empty[<span class="type">Partition</span>]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由上述代码可知，HadoopRDD重写的<strong>getPartitions</strong>方法，通过调用<strong>getSplits</strong>方法获取到了Hadoop数据分片的信息，再将其封装为<strong>HadoopPartition</strong>实例，追加到<strong>array</strong>数组中进行返回，它的长度也就是我们平时认为的读取HDFS文件的默认分区数量。</p>
+<p>继续往下走，getSplits方法是获取Hadoop数据的关键，该方法实现了InputFormat接口。(org.apache.hadoop.mapred.InputFormat.java)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@InterfaceAudience</span>.Public</span><br><span class="line"><span class="meta">@InterfaceStability</span>.Stable</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">InputFormat</span>&lt;<span class="title">K</span>, <span class="title">V</span>&gt; </span>&#123;</span><br><span class="line">	<span class="comment">// 用于对任务的输入文件进行逻辑上的切分</span></span><br><span class="line">  InputSplit[] getSplits(JobConf job, <span class="keyword">int</span> numSplits) <span class="keyword">throws</span> IOException;</span><br><span class="line">	<span class="comment">// 省略无关代码</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>而真正实现了文件切分逻辑的是<strong>FileInputFormat</strong>类。<br>(org.apache.hadoop.mapred.FileInputFormat.java)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> InputSplit[] getSplits(JobConf job, <span class="keyword">int</span> numSplits)</span><br><span class="line">  <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  Stopwatch sw = <span class="keyword">new</span> Stopwatch().start();</span><br><span class="line">  FileStatus[] files = listStatus(job);</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// Save the number of input files for metrics/loadgen</span></span><br><span class="line">  job.setLong(NUM_INPUT_FILES, files.length);</span><br><span class="line">  <span class="comment">// totalSize为输入文件总大小</span></span><br><span class="line">  <span class="keyword">long</span> totalSize = <span class="number">0</span>;                           <span class="comment">// compute total size</span></span><br><span class="line">  <span class="comment">// 如果是目录直接抛出异常路径</span></span><br><span class="line">  <span class="keyword">for</span> (FileStatus file: files) &#123;                <span class="comment">// check we have valid files</span></span><br><span class="line">    <span class="keyword">if</span> (file.isDirectory()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Not a file: "</span>+ file.getPath());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 累加每个文件的大小，得到总大小</span></span><br><span class="line">    totalSize += file.getLen();</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// goalSize为每个split的目标大小，如果切片数量为0，则goalSize = totalSize</span></span><br><span class="line">  <span class="comment">// 如果切片数量不为0，则goalSize = totalSize/numSplits</span></span><br><span class="line">  <span class="keyword">long</span> goalSize = totalSize / (numSplits == <span class="number">0</span> ? <span class="number">1</span> : numSplits);</span><br><span class="line">  <span class="comment">// minSize为每个split的最小大小，由MR参数mapreduce.input.fileinputformat.split.minsize决定</span></span><br><span class="line">  <span class="comment">// 最小为1</span></span><br><span class="line">  <span class="keyword">long</span> minSize = Math.max(job.getLong(org.apache.hadoop.mapreduce.lib.input.</span><br><span class="line">    FileInputFormat.SPLIT_MINSIZE, <span class="number">1</span>), minSplitSize);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 这里开始创建split</span></span><br><span class="line">  ArrayList&lt;FileSplit&gt; splits = <span class="keyword">new</span> ArrayList&lt;FileSplit&gt;(numSplits);</span><br><span class="line">  NetworkTopology clusterMap = <span class="keyword">new</span> NetworkTopology();</span><br><span class="line">  <span class="comment">// 遍历输入文件</span></span><br><span class="line">  <span class="keyword">for</span> (FileStatus file: files) &#123;</span><br><span class="line">    <span class="comment">// 获取路径以及文件大小</span></span><br><span class="line">    Path path = file.getPath();</span><br><span class="line">    <span class="keyword">long</span> length = file.getLen();</span><br><span class="line">    <span class="keyword">if</span> (length != <span class="number">0</span>) &#123;</span><br><span class="line">      FileSystem fs = path.getFileSystem(job);</span><br><span class="line">      BlockLocation[] blkLocations;</span><br><span class="line">      <span class="comment">// 获取数据块block的位置信息</span></span><br><span class="line">      <span class="keyword">if</span> (file <span class="keyword">instanceof</span> LocatedFileStatus) &#123;</span><br><span class="line">        blkLocations = ((LocatedFileStatus) file).getBlockLocations();</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        blkLocations = fs.getFileBlockLocations(file, <span class="number">0</span>, length);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 判断该文件是否可以继续被切分</span></span><br><span class="line">      <span class="keyword">if</span> (isSplitable(fs, path)) &#123;</span><br><span class="line">        <span class="keyword">long</span> blockSize = file.getBlockSize();</span><br><span class="line">        <span class="comment">// 通过刚才计算得到的split目标大小，split最小大小以及当前文件block的大小进行计算</span></span><br><span class="line">        <span class="keyword">long</span> splitSize = computeSplitSize(goalSize, minSize, blockSize);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">long</span> bytesRemaining = length;</span><br><span class="line">        <span class="comment">// 这里bytesRemaining其实就是当前文件大小length</span></span><br><span class="line">        <span class="comment">// 计算方式为：当前文件大小/当前分片大小 &gt; 1.1 </span></span><br><span class="line">        <span class="comment">// 即如果当前文件大小比当前分片大小大至少10%，就会继续切片，直到剩余的数据大小不会超过分片的10%</span></span><br><span class="line">        <span class="keyword">while</span> (((<span class="keyword">double</span>) bytesRemaining)/splitSize &gt; SPLIT_SLOP) &#123;</span><br><span class="line">          String[][] splitHosts = getSplitHostsAndCachedHosts(blkLocations,</span><br><span class="line">              length-bytesRemaining, splitSize, clusterMap);</span><br><span class="line">          splits.add(makeSplit(path, length-bytesRemaining, splitSize,</span><br><span class="line">              splitHosts[<span class="number">0</span>], splitHosts[<span class="number">1</span>]));</span><br><span class="line">          <span class="comment">// 每次展开之后对剩余数据大小进行递减</span></span><br><span class="line">          bytesRemaining -= splitSize;</span><br><span class="line">        &#125;</span><br><span class="line">			<span class="comment">// 将最后多余出来的尾巴追加到splits数组当中</span></span><br><span class="line">        <span class="keyword">if</span> (bytesRemaining != <span class="number">0</span>) &#123;</span><br><span class="line">          String[][] splitHosts = getSplitHostsAndCachedHosts(blkLocations, length</span><br><span class="line">              - bytesRemaining, bytesRemaining, clusterMap);</span><br><span class="line">          splits.add(makeSplit(path, length - bytesRemaining, bytesRemaining,</span><br><span class="line">              splitHosts[<span class="number">0</span>], splitHosts[<span class="number">1</span>]));</span><br><span class="line">        &#125;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        String[][] splitHosts = getSplitHostsAndCachedHosts(blkLocations,<span class="number">0</span>,length,clusterMap);</span><br><span class="line">        splits.add(makeSplit(path, <span class="number">0</span>, length, splitHosts[<span class="number">0</span>], splitHosts[<span class="number">1</span>]));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123; </span><br><span class="line">      <span class="comment">//Create empty hosts array for zero length files</span></span><br><span class="line">      splits.add(makeSplit(path, <span class="number">0</span>, length, <span class="keyword">new</span> String[<span class="number">0</span>]));</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  sw.stop();</span><br><span class="line">  <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">    LOG.debug(<span class="string">"Total # of splits generated by getSplits: "</span> + splits.size()</span><br><span class="line">        + <span class="string">", TimeTaken: "</span> + sw.elapsedMillis());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 最后返回含有所有数据切片，切片地址信息的splits数组</span></span><br><span class="line">  <span class="keyword">return</span> splits.toArray(<span class="keyword">new</span> FileSplit[splits.size()]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>关键步骤已添加对应注释，整个过程基本为：遍历输入的文件，获取路径、文件大小、block位置等信息；通过配置信息计算出split切分的大小界限；用该界限循环切分每个文件直到其不能再被切分为止，并把切分好的split追加到splits数组当中；最后将含有所有split信息的splits数组进行返回。</p>
+<p>到这里，textFile方法读取HDFS文件的默认分区逻辑基本完结。</p>
+<p>对本章节进行简单总结：</p>
+<ul>
+<li>创建RDD常见方式有两种，分别调用SparkContext的parallelize或textFile方法。</li>
+<li>parallelize方法用于程序中数组转化RDD，textFile方法用于Hadoop支持的所有文件系统数据源。</li>
+<li>parallelize创建的RDD默认分区数量由spark.default.parallelism值决定，该值大小根据Spark部署模式有不同。</li>
+<li>textFile读取HDFS数据所创建的HadoopRDD默认分区数量由HDFS的block大小决定。</li>
+<li>决定HadoopRDD分区数量的方法getSplits实际封装了Hadoop的getSplits方法，其根据block大小对数据进行切片。</li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#RDD详解-RDD创建-RDD默认分区"><span class="toc-number">1.</span> <span class="toc-text">RDD详解[RDD创建][RDD默认分区]</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#创建RDD"><span class="toc-number">1.1.</span> <span class="toc-text">创建RDD</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#程序中的集合"><span class="toc-number">1.1.1.</span> <span class="toc-text">程序中的集合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#本地文件与HDFS文件"><span class="toc-number">1.1.2.</span> <span class="toc-text">本地文件与HDFS文件</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#分区数量定义"><span class="toc-number">1.2.</span> <span class="toc-text">分区数量定义</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#parallelize"><span class="toc-number">1.2.1.</span> <span class="toc-text">parallelize</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#textFile"><span class="toc-number">1.2.2.</span> <span class="toc-text">textFile</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/" target="_blank" rel="noopener"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&text=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&is_video=false&description=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=RDD详解[RDD创建][RDD默认分区]&body=Check out this article: http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&title=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&name=RDD详解[RDD创建][RDD默认分区]&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/02/RDD%E8%AF%A6%E8%A7%A3-RDD%E5%88%9B%E5%BB%BA-RDD%E9%BB%98%E8%AE%A4%E5%88%86%E5%8C%BA/&t=RDD详解[RDD创建][RDD默认分区]" target="_blank" rel="noopener"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2020
+    SinGle IP
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>
