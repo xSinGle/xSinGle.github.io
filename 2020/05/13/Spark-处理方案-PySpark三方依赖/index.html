@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="本文讲解spark client模式和cluster模式的第三方库依赖解决方法，注意，在用的时候需要看清楚自己的集群是哪种方法部署spark(deploy-mode)。 cluster模式该模式亲测有效 *1. 使用conda或virtualenv或pipenv等创建python虚拟环境 *假设虚拟环境是pyspark_env，安装位置是： 1&#x2F;data1&#x2F;spark_projects&#x2F;envs&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Spark][处理方案]PySpark三方依赖">
+<meta property="og:url" content="http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文讲解spark client模式和cluster模式的第三方库依赖解决方法，注意，在用的时候需要看清楚自己的集群是哪种方法部署spark(deploy-mode)。 cluster模式该模式亲测有效 *1. 使用conda或virtualenv或pipenv等创建python虚拟环境 *假设虚拟环境是pyspark_env，安装位置是： 1&#x2F;data1&#x2F;spark_projects&#x2F;envs&#x2F;">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-13T13:54:17.000Z">
+<meta property="article:modified_time" content="2020-05-13T13:56:26.685Z">
+<meta property="article:author" content="SinGle IP">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>[Spark][处理方案]PySpark三方依赖</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/05/05/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-StaticMemoryManager-UnifiedMemoryManager/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/" target="_blank" rel="noopener"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&text=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&is_video=false&description=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=[Spark][处理方案]PySpark三方依赖&body=Check out this article: http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&name=[Spark][处理方案]PySpark三方依赖&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&t=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#cluster模式"><span class="toc-number">1.</span> <span class="toc-text">cluster模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#参数配置"><span class="toc-number">1.1.</span> <span class="toc-text">参数配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#client模式"><span class="toc-number">2.</span> <span class="toc-text">client模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#提交方式1：全局python环境"><span class="toc-number">2.1.</span> <span class="toc-text">提交方式1：全局python环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#提交方式2：python虚拟环境"><span class="toc-number">2.2.</span> <span class="toc-text">提交方式2：python虚拟环境</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        [Spark][处理方案]PySpark三方依赖
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">SinGle's Cabin</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-05-13T13:54:17.000Z" itemprop="datePublished">2020-05-13</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <p><em>本文讲解spark <strong>client</strong>模式和<strong>cluster</strong>模式的<strong>第三方库依赖</strong>解决方法，注意，在用的时候需要看清楚自己的集群是哪种方法部署spark(deploy-mode)。</em></p>
+<h2 id="cluster模式"><a href="#cluster模式" class="headerlink" title="cluster模式"></a>cluster模式</h2><p><strong>该模式亲测有效</strong></p>
+<p>*<em>1. 使用conda或virtualenv或pipenv等创建python虚拟环境 *</em><br>假设虚拟环境是pyspark_env，安装位置是：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/data1/spark_projects/envs/pyspark_env</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 安装第三方库</strong><br>安装的第三方库是：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> activate pyspark_env</span><br><span class="line"></span><br><span class="line">pip install pandas</span><br><span class="line">pip install sklearn</span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 打包整个虚拟环境</strong>(<u><strong>这一步是重点</strong></u>)<br>进入虚拟环境目录，压缩整个文件夹</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/data1/spark_projects/envs/</span><br><span class="line">zip -r -9 -q pyspark_env.zip pyspark_env/</span><br></pre></td></tr></table></figure>
+
+<p>-r 递归压缩<br>-9 better compress<br>-q console无输出<br>压缩后得到压缩包pyspark_env.zip。</p>
+<p><strong>4.将压缩是虚拟环境上传到hdfs</strong><br>这样在cluster模式下 所有的executor都可以使用指定的hdfs目录下的解释器 </p>
+<ul>
+<li><p><strong>查看hdfs目标目录下的文件</strong><br>hdfs dfs -ls hdfs://schema-hdfs/user/single/</p>
+</li>
+<li><p><strong>上传压缩环境包到hdfs上</strong><br>hdfs dfs –put pyspark_env.zip hdfs://schema-hdfs/user/single/</p>
+</li>
+<li><p><strong>检查是否上传成功</strong><br>hdfs dfs -ls hdfs://schema-hdfs/user/single/<br>这里上传的hdfs目录如上，后面指定参数的时候需要<strong>指定这个目录</strong>。</p>
+</li>
+</ul>
+<h3 id="参数配置"><a href="#参数配置" class="headerlink" title="参数配置"></a>参数配置</h3><p>第一个参数，压缩的文件会被提取到executor到工作目录下面去，后面用#pyspark_env表示这个文件被解压到的目标目录的名称。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conf.spark.yarn.dist.archives = hdfs://schema-hdfs/user/single/pyspark_env.zip<span class="comment">#pyspark_env</span></span><br></pre></td></tr></table></figure>
+
+<p>第二个参数，指定python的环境是哪个。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conf.spark.yarn.appMasterEnv.PYSPARK_PYTHON = pyspark_env/pyspark_env/bin/python</span><br></pre></td></tr></table></figure>
+
+<p>然后正常提交即可</p>
+<h2 id="client模式"><a href="#client模式" class="headerlink" title="client模式"></a>client模式</h2><p>client模式的缺点是，要求每个节点都要安装相同的python环境。两个解决办法：</p>
+<ol>
+<li>在所有计算节点上安装相同版本的python，添加到PATH中，统一使用默认python解释器执行任务。</li>
+<li>类似上一点，在所有计算节点上安装anaconda等虚拟环境，并指定使用虚拟环境python进行任务执行。</li>
+</ol>
+<h3 id="提交方式1：全局python环境"><a href="#提交方式1：全局python环境" class="headerlink" title="提交方式1：全局python环境"></a>提交方式1：全局python环境</h3><p>使用统一的python环境执行任务，即使用全局的python解释器运行任务。这里相当于使用系统默认PATH下的python了，前提也是要保证所有机器下的/usr/bin/python版本一致。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">/usr/hdp/2.6.4.0-91/spark2/bin/spark-submit --master yarn --queue ai \</span><br><span class="line">--name &#123;job_name&#125; \</span><br><span class="line">--conf <span class="string">"spark.pyspark.driver.python=/usr/bin/python3"</span> \ <span class="comment"># 这是重点，指定python的版本</span></span><br><span class="line">--conf <span class="string">"spark.pyspark.python=/usr/bin/python3"</span> \ <span class="comment"># 这是重点，指定python的版本</span></span><br><span class="line">python_file.py</span><br></pre></td></tr></table></figure>
+
+<h3 id="提交方式2：python虚拟环境"><a href="#提交方式2：python虚拟环境" class="headerlink" title="提交方式2：python虚拟环境"></a>提交方式2：python虚拟环境</h3><p>指定虚拟环境解释器，核心是修改 driver.python 的配置项，这里的前提是，所有的计算节点都在同一目录下安装了该环境。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">/usr/hdp/2.6.4.0-91/spark2/bin/spark-submit --master yarn --queue root.xx \</span><br><span class="line">--name &#123;job_name&#125; \</span><br><span class="line">--conf <span class="string">"spark.pyspark.driver.python=/usr/local/miniconda/envs/my_project/bin/python3"</span> \ <span class="comment"># 这是重点，指定虚拟环境中的python的版本</span></span><br><span class="line">--conf <span class="string">"spark.pyspark.python=/usr/local/miniconda/envs/my_project/bin/python3"</span> \ <span class="comment"># 这是重点，指定虚拟环境中的python的版本</span></span><br><span class="line">python_file.py</span><br></pre></td></tr></table></figure>
+
+<p>python_file.py的内容如下，我们测试是否真的引用了虚拟环境的python。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pymysql</span><br><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"></span><br><span class="line">print(pymysql.__path__) <span class="comment"># 这里打印虚拟环境中的包</span></span><br><span class="line">print(pd.__path__) <span class="comment"># 这里打印虚拟环境中的包</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> pyspark.sql <span class="keyword">import</span> SparkSession</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">		spark = SparkSession.builder.enableHiveSupport().getOrCreate()</span><br><span class="line">    print(pymysql.__path__) <span class="comment"># 这里打印虚拟环境中的包</span></span><br><span class="line">    print(pd.__path__) <span class="comment"># 这里打印虚拟环境中的包</span></span><br><span class="line">    spark.stop()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">main()</span><br></pre></td></tr></table></figure>
+
+<p>输出如下，我们发现实际调用的python是我们指定的虚拟环境中的python，引用路径也是虚拟环境中安装的包。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[<span class="string">'/home/dm/.conda/envs/processtest/lib/python3.6/site-packages/pymysql'</span>]</span><br><span class="line">[<span class="string">'/home/dm/.conda/envs/processtest/lib/python3.6/site-packages/pandas'</span>]</span><br></pre></td></tr></table></figure>
+
+<p>若要在所有计算节点中安装上相同的python库，推荐使用默认使用anaconda，能够覆盖大多数常用三方包。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#cluster模式"><span class="toc-number">1.</span> <span class="toc-text">cluster模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#参数配置"><span class="toc-number">1.1.</span> <span class="toc-text">参数配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#client模式"><span class="toc-number">2.</span> <span class="toc-text">client模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#提交方式1：全局python环境"><span class="toc-number">2.1.</span> <span class="toc-text">提交方式1：全局python环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#提交方式2：python虚拟环境"><span class="toc-number">2.2.</span> <span class="toc-text">提交方式2：python虚拟环境</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/" target="_blank" rel="noopener"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&text=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&is_video=false&description=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=[Spark][处理方案]PySpark三方依赖&body=Check out this article: http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&title=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&name=[Spark][处理方案]PySpark三方依赖&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/&t=[Spark][处理方案]PySpark三方依赖" target="_blank" rel="noopener"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2020
+    SinGle IP
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>
