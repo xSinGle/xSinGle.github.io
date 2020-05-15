@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="概述由于内容较多，本文将重点讲解以下几点：  MemoryStore的宏观内存模型。 Block在内存中的抽象MemoryEntry。 Task与内存之间的交互，包括申请，释放，统计等。  MemoryEntryMemoryStore中定义了Block在内存中的抽象，即特质MemoryEntry。    属性 解释    size 当前Block在内存中的大小。   MemoryMode Blo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Core [源码解析] MemoryStore(1)">
+<meta property="og:url" content="http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="概述由于内容较多，本文将重点讲解以下几点：  MemoryStore的宏观内存模型。 Block在内存中的抽象MemoryEntry。 Task与内存之间的交互，包括申请，释放，统计等。  MemoryEntryMemoryStore中定义了Block在内存中的抽象，即特质MemoryEntry。    属性 解释    size 当前Block在内存中的大小。   MemoryMode Blo">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/MemoryStore.png">
+<meta property="og:image" content="http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/MemoryStore%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.png">
+<meta property="article:published_time" content="2020-05-15T14:17:04.000Z">
+<meta property="article:modified_time" content="2020-05-15T14:19:06.022Z">
+<meta property="article:author" content="SinGle IP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/MemoryStore.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Spark Core [源码解析] MemoryStore(1)</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/05/13/Spark-%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-PySpark%E4%B8%89%E6%96%B9%E4%BE%9D%E8%B5%96/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/" target="_blank" rel="noopener"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&text=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&is_video=false&description=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spark Core [源码解析] MemoryStore(1)&body=Check out this article: http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&name=Spark Core [源码解析] MemoryStore(1)&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&t=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryEntry"><span class="toc-number">2.</span> <span class="toc-text">MemoryEntry</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DeserializedMemoryEntry"><span class="toc-number">2.1.</span> <span class="toc-text">DeserializedMemoryEntry</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SerializedMemoryEntry"><span class="toc-number">2.2.</span> <span class="toc-text">SerializedMemoryEntry</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore属性"><span class="toc-number">3.</span> <span class="toc-text">MemoryStore属性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BlockEvictionHandler"><span class="toc-number">4.</span> <span class="toc-text">BlockEvictionHandler</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore方法-对MemoryStore模型提供概念上的描述"><span class="toc-number">5.</span> <span class="toc-text">MemoryStore方法(对MemoryStore模型提供概念上的描述)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#maxMemory"><span class="toc-number">5.1.</span> <span class="toc-text">maxMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#memoryUsed"><span class="toc-number">5.2.</span> <span class="toc-text">memoryUsed</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#currentUnrollMemory"><span class="toc-number">5.3.</span> <span class="toc-text">currentUnrollMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#blocksMemoryUsed"><span class="toc-number">5.4.</span> <span class="toc-text">blocksMemoryUsed</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#reserveUnrollMemoryForThisTask"><span class="toc-number">5.5.</span> <span class="toc-text">reserveUnrollMemoryForThisTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseUnrollMemoryForThisTask"><span class="toc-number">5.6.</span> <span class="toc-text">releaseUnrollMemoryForThisTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#currentUnrollMemoryForThisTask"><span class="toc-number">5.7.</span> <span class="toc-text">currentUnrollMemoryForThisTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#numTaskUnrolling"><span class="toc-number">5.8.</span> <span class="toc-text">numTaskUnrolling</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore内存模型"><span class="toc-number">6.</span> <span class="toc-text">MemoryStore内存模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">7.</span> <span class="toc-text">小结</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Spark Core [源码解析] MemoryStore(1)
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">SinGle's Cabin</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-05-15T14:17:04.000Z" itemprop="datePublished">2020-05-15</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <p><img src="/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/MemoryStore.png" alt="MemoryStore"></p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>由于内容较多，本文将重点讲解以下几点：</p>
+<ol>
+<li>MemoryStore的宏观内存模型。</li>
+<li>Block在内存中的抽象MemoryEntry。</li>
+<li>Task与内存之间的交互，包括申请，释放，统计等。</li>
+</ol>
+<h2 id="MemoryEntry"><a href="#MemoryEntry" class="headerlink" title="MemoryEntry"></a>MemoryEntry</h2><p><strong>MemoryStore</strong>中定义了<strong>Block</strong>在内存中的抽象，即特质<strong>MemoryEntry</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>size</strong></td>
+<td>当前Block在内存中的大小。</td>
+</tr>
+<tr>
+<td><strong>MemoryMode</strong></td>
+<td>Block存入内存的内存模式(ON/OFF_HEAP)。</td>
+</tr>
+<tr>
+<td><strong>classTag</strong></td>
+<td>Block的类型标记。</td>
+</tr>
+</tbody></table>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">sealed</span> <span class="class"><span class="keyword">trait</span> <span class="title">MemoryEntry</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">size</span></span>: <span class="type">Long</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">memoryMode</span></span>: <span class="type">MemoryMode</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">classTag</span></span>: <span class="type">ClassTag</span>[<span class="type">T</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="DeserializedMemoryEntry"><a href="#DeserializedMemoryEntry" class="headerlink" title="DeserializedMemoryEntry"></a>DeserializedMemoryEntry</h3><p>反序列化后的<strong>MemoryEntry</strong>。<br>只支持堆内内存(ON_HEAP)的内存模式。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">DeserializedMemoryEntry</span>[<span class="type">T</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">    value: <span class="type">Array</span>[<span class="type">T</span>],</span></span></span><br><span class="line"><span class="class"><span class="params">    size: <span class="type">Long</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    classTag: <span class="type">ClassTag</span>[<span class="type">T</span>]</span>) <span class="keyword">extends</span> <span class="title">MemoryEntry</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">  <span class="keyword">val</span> memoryMode: <span class="type">MemoryMode</span> = <span class="type">MemoryMode</span>.<span class="type">ON_HEAP</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="SerializedMemoryEntry"><a href="#SerializedMemoryEntry" class="headerlink" title="SerializedMemoryEntry"></a>SerializedMemoryEntry</h3><p>序列化后的<strong>MemroyEntry</strong>。<br>支持两种类型(ON/OFF_HEAP)的内存模式。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">SerializedMemoryEntry</span>[<span class="type">T</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">    buffer: <span class="type">ChunkedByteBuffer</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    memoryMode: <span class="type">MemoryMode</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    classTag: <span class="type">ClassTag</span>[<span class="type">T</span>]</span>) <span class="keyword">extends</span> <span class="title">MemoryEntry</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">size</span></span>: <span class="type">Long</span> = buffer.size</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="MemoryStore属性"><a href="#MemoryStore属性" class="headerlink" title="MemoryStore属性"></a>MemoryStore属性</h2><table>
+<thead>
+<tr>
+<th>属性</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>conf</strong></td>
+<td>即SparkConf。</td>
+</tr>
+<tr>
+<td><strong>blockInfoManager</strong></td>
+<td>Block信息管理器BlockInfoManager。</td>
+</tr>
+<tr>
+<td><strong>serializerManager</strong></td>
+<td>序列化管理器SerializerManager。</td>
+</tr>
+<tr>
+<td><strong>memoryManager</strong></td>
+<td>内存管理器MemoryManager。MemoryStore存储Block，用的就是MemoryManager内的maxOnHeapStorageMemory与maxOffHeapStorageMemory两块内存池。</td>
+</tr>
+<tr>
+<td><strong>blockEvictionHandler</strong></td>
+<td>块驱逐处理器。用于将Block从内存中驱逐出去。blockEvictionHandler的类型是BlockEvictionHandler，其定义了将对象从内存中移除的接口。</td>
+</tr>
+<tr>
+<td><strong>entries</strong></td>
+<td>内存中的BlockId与MemoryEntry(Block的内存形式)之间的映射关系的缓存。</td>
+</tr>
+<tr>
+<td><strong>onHeapUnrollMemoryMap</strong></td>
+<td>任务尝试线程标识<strong>taskAttemptId</strong>与任务尝试<strong>线程</strong>在堆内内存<strong>展开所有block所占用的内存大小之和</strong>之间的映射关系。</td>
+</tr>
+<tr>
+<td><strong>offHeapUnrollMemoryMap</strong></td>
+<td>任务尝试线程标识<strong>taskAttemptId</strong>与任务尝试<strong>线程</strong>在堆外内存<strong>展开所有block所占用的内存大小之和</strong>之间的映射关系。</td>
+</tr>
+<tr>
+<td><strong>unrollMemoryThreshold</strong></td>
+<td>用来<strong>展开</strong>任何Block之前，<strong>初始请求的内存大小</strong>，可以修改属性<strong>spark.storage.unrollMemoryThreshold</strong>改变大小，默认为<strong>1MB</strong>。</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>一个任务尝试线程可能会在内存中unroll多个Block。</p>
+</blockquote>
+<h2 id="BlockEvictionHandler"><a href="#BlockEvictionHandler" class="headerlink" title="BlockEvictionHandler"></a>BlockEvictionHandler</h2><p>定义了将对象从内存中移除的接口<strong>dropFromMemory</strong>。<br>官方解释：</p>
+<ul>
+<li>用于将<strong>block</strong>从<strong>memory</strong>中驱逐。</li>
+<li>当<strong>MemoryStore</strong>内存不足时，如果disk存在空闲空间，BlockEvictionHandler会将其<strong>溢出</strong>到disk上。</li>
+<li>调用<strong>dropFromMemory</strong>的线程必须获取到<strong>block的写锁</strong>，但调用该方法后并<strong>不会释放</strong>写锁。</li>
+<li><strong>dropFromMemory</strong>方法返回新的<strong>StorageLevel</strong>。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[storage] <span class="class"><span class="keyword">trait</span> <span class="title">BlockEvictionHandler</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span>[storage] <span class="function"><span class="keyword">def</span> <span class="title">dropFromMemory</span></span>[<span class="type">T</span>: <span class="type">ClassTag</span>](</span><br><span class="line">      blockId: <span class="type">BlockId</span>,</span><br><span class="line">      data: () =&gt; <span class="type">Either</span>[<span class="type">Array</span>[<span class="type">T</span>], <span class="type">ChunkedByteBuffer</span>]): <span class="type">StorageLevel</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如上，BlockManager实现了特质BlockEvictionHandler。并且重写了dropFromMemory方法。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Actual storage of where blocks are kept</span></span><br><span class="line"><span class="keyword">private</span>[spark] <span class="keyword">val</span> memoryStore =</span><br><span class="line">  <span class="keyword">new</span> <span class="type">MemoryStore</span>(conf, blockInfoManager, serializerManager, memoryManager, <span class="keyword">this</span>)</span><br></pre></td></tr></table></figure>
+
+<p>BlockManager在构造MemoryStore时，将<strong>自身的引用</strong>(this)作为<strong>blockEvictionHandler</strong>参数传递给<strong>MemoryStore</strong>的<strong>构造器</strong>。<br><u><strong>所以BlockEvictionHandler就是BlockManager!</strong></u></p>
+<h2 id="MemoryStore方法-对MemoryStore模型提供概念上的描述"><a href="#MemoryStore方法-对MemoryStore模型提供概念上的描述" class="headerlink" title="MemoryStore方法(对MemoryStore模型提供概念上的描述)"></a>MemoryStore方法(对MemoryStore模型提供概念上的描述)</h2><p><strong>除了上述属性外，以下方法为MemoryStore提供了概念性描述</strong></p>
+<blockquote>
+<p>在以下<strong>MemoryStore</strong>多个方法中，都将依赖属性<strong>onHeapUnrollMemoryMap</strong>与<strong>offHeapUnrollMemoryMap</strong>来对展开内存的用量进行计算，故该属性与其相关方法需要重点掌握。</p>
+</blockquote>
+<h3 id="maxMemory"><a href="#maxMemory" class="headerlink" title="maxMemory"></a>maxMemory</h3><ul>
+<li><strong>MemoryStore</strong>用于存储<strong>block</strong>的最大内存。</li>
+<li>实质为<strong>maxOnHeapStorageMemory</strong>与<strong>maxOffHeapStorageMemory</strong>之和。</li>
+<li>若<strong>MemoryManager</strong>为<strong>StaticMemoryManager</strong>，<strong>maxMemory</strong>大小是<u><strong>固定</strong></u>的。</li>
+<li>若<strong>MemoryManager</strong>为<strong>UnifiedMemoryManager</strong>，<strong>maxMemory</strong>大小是<u><strong>动态变化</strong></u>的。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">maxMemory</span></span>: <span class="type">Long</span> = &#123;</span><br><span class="line">    memoryManager.maxOnHeapStorageMemory + memoryManager.maxOffHeapStorageMemory</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// 如果maxMemory小于展开内存的最低阈值，会弹出WARN级别的警告信息。</span></span><br><span class="line">  <span class="keyword">if</span> (maxMemory &lt; unrollMemoryThreshold) &#123;</span><br><span class="line">    logWarning(<span class="string">s"Max memory <span class="subst">$&#123;Utils.bytesToString(maxMemory)&#125;</span> is less than the initial memory "</span> +</span><br><span class="line">      <span class="string">s"threshold <span class="subst">$&#123;Utils.bytesToString(unrollMemoryThreshold)&#125;</span> needed to store a block in "</span> +</span><br><span class="line">      <span class="string">s"memory. Please configure Spark with more memory."</span>)</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// 启动时告知MemoryStore初始容量大小。</span></span><br><span class="line">  logInfo(<span class="string">"MemoryStore started with capacity %s"</span>.format(<span class="type">Utils</span>.bytesToString(maxMemory)))</span><br></pre></td></tr></table></figure>
+
+<h3 id="memoryUsed"><a href="#memoryUsed" class="headerlink" title="memoryUsed"></a>memoryUsed</h3><ul>
+<li><strong>MemoryStore</strong><u><strong>已经使用</strong></u>的内存大小。</li>
+<li>实质为用于存储的<strong>堆内内存</strong>与<strong>堆外内存</strong>使用量<strong>之和</strong>。即onHeapStorageMemoryPool.memoryUsed + offHeapStorageMemoryPool.memoryUsed</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">memoryUsed</span></span>: <span class="type">Long</span> = memoryManager.storageMemoryUsed</span><br></pre></td></tr></table></figure>
+
+<h3 id="currentUnrollMemory"><a href="#currentUnrollMemory" class="headerlink" title="currentUnrollMemory"></a>currentUnrollMemory</h3><ul>
+<li>MemoryStore用于展开Block使用的内存大小。</li>
+<li>实质为堆内外UnrollMemoryMap中所有用于展开Block所占用的内存大小总和。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">currentUnrollMemory</span></span>: <span class="type">Long</span> = memoryManager.synchronized &#123;</span><br><span class="line">  onHeapUnrollMemoryMap.values.sum + offHeapUnrollMemoryMap.values.sum</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="blocksMemoryUsed"><a href="#blocksMemoryUsed" class="headerlink" title="blocksMemoryUsed"></a>blocksMemoryUsed</h3><ul>
+<li>MemoryStore用于存储block使用的内存大小</li>
+<li>该值不包括用于unroll block的内存大小</li>
+<li>blocksMemoryUsed = memoryUsed - currentUnrollMemory</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">blocksMemoryUsed</span></span>: <span class="type">Long</span> = memoryManager.synchronized &#123;</span><br><span class="line">  memoryUsed - currentUnrollMemory</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="reserveUnrollMemoryForThisTask"><a href="#reserveUnrollMemoryForThisTask" class="headerlink" title="reserveUnrollMemoryForThisTask"></a>reserveUnrollMemoryForThisTask</h3><blockquote>
+<p>为了展开任务尝试给定的block，在指定内存模式上保留指定大小的内存。</p>
+</blockquote>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reserveUnrollMemoryForThisTask</span></span>(</span><br><span class="line">    blockId: <span class="type">BlockId</span>,</span><br><span class="line">    memory: <span class="type">Long</span>,</span><br><span class="line">    memoryMode: <span class="type">MemoryMode</span>): <span class="type">Boolean</span> = &#123;</span><br><span class="line">  memoryManager.synchronized &#123;</span><br><span class="line">  <span class="comment">// 调用MemoryManager的acquireUnrollMemory方法，</span></span><br><span class="line">  <span class="comment">// 为该blockId对应的block，申请指定大小的内存</span></span><br><span class="line">    <span class="keyword">val</span> success = memoryManager.acquireUnrollMemory(blockId, memory, memoryMode)</span><br><span class="line">    <span class="keyword">if</span> (success) &#123;</span><br><span class="line">    <span class="comment">// 调用currentTaskAttemptId获取任务尝试标识taskAttemptId</span></span><br><span class="line">      <span class="keyword">val</span> taskAttemptId = currentTaskAttemptId()</span><br><span class="line">      <span class="keyword">val</span> unrollMemoryMap = memoryMode <span class="keyword">match</span> &#123;</span><br><span class="line">      <span class="comment">// 根据memoryMode创建taskAttemptId与该任务尝试线程在堆内或堆外展开的所有Block所占用的内存大小之和的映射表</span></span><br><span class="line">        <span class="keyword">case</span> <span class="type">MemoryMode</span>.<span class="type">ON_HEAP</span> =&gt; onHeapUnrollMemoryMap</span><br><span class="line">        <span class="keyword">case</span> <span class="type">MemoryMode</span>.<span class="type">OFF_HEAP</span> =&gt; offHeapUnrollMemoryMap</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 将该taskAttemptId与该任务尝试线程在堆内或堆外用于展开的所有Block所占用的内存的映射关系，更新到映射表。</span></span><br><span class="line">      <span class="comment">// 新的任务尝试线程，默认的占用展开内存总和为0L</span></span><br><span class="line">      unrollMemoryMap(taskAttemptId) = unrollMemoryMap.getOrElse(taskAttemptId, <span class="number">0</span>L) + memory</span><br><span class="line">    &#125;</span><br><span class="line">    success</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>执行流程：</strong></p>
+<ol>
+<li>调用<strong>MemoryManager</strong>的<strong>acquireUnrollMemory</strong>方法，为该blockId对应的block，获取指定大小的内存。</li>
+<li>调用<strong>currentTaskAttemptId</strong>创建任务尝试标识<strong>taskAttemptId</strong>。</li>
+<li>根据<strong>memoryMode</strong>创建<strong>taskAttemptId</strong>与该任务尝试线程在堆内或堆外展开所有<strong>Block</strong>所占用的内存大小之和的<strong>映射表</strong> <strong>on/offHeapUnrollMemoryMap</strong>。</li>
+<li>将上述映射关系更新到映射表当中。返回内存获取成功或失败的状态(<strong>success</strong>)。</li>
+</ol>
+<h3 id="releaseUnrollMemoryForThisTask"><a href="#releaseUnrollMemoryForThisTask" class="headerlink" title="releaseUnrollMemoryForThisTask"></a>releaseUnrollMemoryForThisTask</h3><blockquote>
+<p>顾名思义，存在<strong>获取</strong>就存在<strong>释放</strong>，该方法用于释放任务尝试线程占用的用于展开的内存。</p>
+</blockquote>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseUnrollMemoryForThisTask</span></span>(memoryMode: <span class="type">MemoryMode</span>, memory: <span class="type">Long</span> = <span class="type">Long</span>.<span class="type">MaxValue</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line"><span class="comment">// 调用currentTaskAttemptId获取任务尝试标识taskAttemptId</span></span><br><span class="line">  <span class="keyword">val</span> taskAttemptId = currentTaskAttemptId()</span><br><span class="line">  memoryManager.synchronized &#123;</span><br><span class="line">  <span class="comment">// 根据memoryMode创建taskAttemptId与该任务尝试线程在堆内或堆外用于展开所有Block所占用的内存大小之和的映射表</span></span><br><span class="line">    <span class="keyword">val</span> unrollMemoryMap = memoryMode <span class="keyword">match</span> &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="type">MemoryMode</span>.<span class="type">ON_HEAP</span> =&gt; onHeapUnrollMemoryMap</span><br><span class="line">      <span class="keyword">case</span> <span class="type">MemoryMode</span>.<span class="type">OFF_HEAP</span> =&gt; offHeapUnrollMemoryMap</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (unrollMemoryMap.contains(taskAttemptId)) &#123;</span><br><span class="line">    <span class="comment">// 若映射表中已经存在该任务尝试线程，且请求释放的内存大于其占用的内存，直接全部内存释放掉</span></span><br><span class="line">      <span class="keyword">val</span> memoryToRelease = math.min(memory, unrollMemoryMap(taskAttemptId))</span><br><span class="line">      <span class="comment">// 如果存在需要释放的内存(&gt;0)</span></span><br><span class="line">      <span class="keyword">if</span> (memoryToRelease &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="comment">// 更新映射表中该任务尝试线程所占用的内存</span></span><br><span class="line">        unrollMemoryMap(taskAttemptId) -= memoryToRelease</span><br><span class="line">        <span class="comment">// 调用MemoryManager的releaseUnrollMemory方法释放内存</span></span><br><span class="line">        memoryManager.releaseUnrollMemory(memoryToRelease, memoryMode)</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 如果没有需要释放的内存了，即该任务尝试占用内存为0</span></span><br><span class="line">      <span class="keyword">if</span> (unrollMemoryMap(taskAttemptId) == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="comment">// 更新映射表，直接将该任务尝试线程与堆内或堆外展开的Block占用内存的映射关系清除</span></span><br><span class="line">        unrollMemoryMap.remove(taskAttemptId)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>执行流程：</strong></p>
+<ol>
+<li>同上，获取taskAttemptId并根据MemoryMode创建on/offHeapUnrollMemoryMap映射表。</li>
+<li>计算<u><strong>实际需要释放</strong></u>的内存，即<strong>请求释放的内存</strong>与该<strong>任务尝试线程实际占用的内存</strong>之间的<u><strong>最小值</strong></u>。</li>
+<li>根据实际需要释放的内存，更新映射表。</li>
+<li>如果没有需要释放的内存了(堆内或堆外展开的Block所占用的内存为0)，直接将映射关系从映射表中删除。</li>
+</ol>
+<h3 id="currentUnrollMemoryForThisTask"><a href="#currentUnrollMemoryForThisTask" class="headerlink" title="currentUnrollMemoryForThisTask"></a>currentUnrollMemoryForThisTask</h3><ul>
+<li>当前任务尝试线程用于展开Block所占用的内存</li>
+<li>即当前任务尝试线程在堆内外内存中用于展开Block所占用的内存总和。</li>
+<li>根据taskAttemptId在UnrollMemoryMap中获取对应的内存，默认为0L。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">currentUnrollMemoryForThisTask</span></span>: <span class="type">Long</span> = memoryManager.synchronized &#123;</span><br><span class="line">  onHeapUnrollMemoryMap.getOrElse(currentTaskAttemptId(), <span class="number">0</span>L) +</span><br><span class="line">    offHeapUnrollMemoryMap.getOrElse(currentTaskAttemptId(), <span class="number">0</span>L)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="numTaskUnrolling"><a href="#numTaskUnrolling" class="headerlink" title="numTaskUnrolling"></a>numTaskUnrolling</h3><ul>
+<li>当前使用MemoryStore展开Block的任务的数量。</li>
+<li>即堆内外UnrollMemoryMap中key的数量的总和。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">numTasksUnrolling</span></span>: <span class="type">Int</span> = memoryManager.synchronized &#123;</span><br><span class="line">  (onHeapUnrollMemoryMap.keys ++ offHeapUnrollMemoryMap.keys).toSet.size</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="MemoryStore内存模型"><a href="#MemoryStore内存模型" class="headerlink" title="MemoryStore内存模型"></a>MemoryStore内存模型</h2><p><img src="/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/MemoryStore%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.png" alt="MemoryStore内存模型"></p>
+<p>首先再次明确几个值的具体意义和计算方式。</p>
+<ul>
+<li><p>最大内存为堆内外用于存储内存的总和。<br><strong>maxMemory</strong> = <strong>onHeapStorageMemory</strong> + <strong>offHeapStorageMemory</strong></p>
+</li>
+<li><p>已经占用内存大小为堆内外存储内存池内存占用大小的总和。<br><strong>memoryUsed</strong> = <strong>memoryManager.storageMemoryUsed</strong><br>即<br><strong>memoryUsed</strong> = <strong>onHeapStorageMemoryPool.memoryUsed</strong> + <strong>offHeapStorageMemoryPool.memoryUsed</strong></p>
+</li>
+<li><p>任务尝试线程展开Blcok所用的的内存总大小为<u><strong>每一个任务尝试线程</strong></u>为了展开Block所占用的内存大小的总和。<br><strong>currentUnrollMemory</strong> = <strong>onHeapUnrollMemoryMap</strong> + <strong>offHeapUnrollMemoryMap</strong></p>
+</li>
+</ul>
+<p>现在可以来看看<strong>MemoryStore</strong>的内存模型了。<br><strong>MemoryStore</strong>的内存模型分为<strong>三部分</strong>进行理解：</p>
+<ol>
+<li><strong>blocksMemoryUsed</strong><br>MemoryEntry的entries属性持有的很多MemoryEntry所占据的内存总和。可以理解为真正被Block数据占用了的存储内存空间。</li>
+<li><strong>currentUnrollMemory</strong><br>如图，每一个任务尝试线程(Task Attempt Thread 1~N)，在堆内外中，用于展开Block所占用的内存的总和。这里用于展开Block的内存类似于“占座”，即先划分出这块内存，避免后续往内存中写入Block数据时发生OOM。</li>
+<li>未被使用的<strong>空闲内存</strong></li>
+</ol>
+<ul>
+<li><u><strong>实质</strong></u>被Block数据(MemoryEntry)占用的内存–blocksMemoryUsed</li>
+<li>所有任务尝试线程为了存储MemoryEntry“<u><strong>预先占用</strong></u>“的内存—currentUnrollMemory<br>以上两者的总和即为<strong>memoryUsed</strong>，<strong>消耗内存的总大小</strong>。</li>
+</ul>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ol>
+<li><strong>Block</strong>数据在内存中以<strong>MemoryEntry</strong>的形式存在，分别有序列化和非序列化两种。</li>
+<li><strong>BlockEvictionHandler</strong>定义了<strong>DropFromMemory</strong>方法，用于将<strong>Block</strong>数据从内存中驱逐。</li>
+<li><strong>MemoryStore</strong>通过调用<strong>MemoryManager</strong>的方法获取存储内存大小以及使用量(<strong>MemoryManager</strong>实质上通过<strong>MemoryPool</strong>获取内存的具体使用情况)。</li>
+<li>通过reserve/release/currentUnrollMemoryForThisTask描述了TaskAttempt申请/释放/计算内存的过程。</li>
+<li>最后通过<strong>blocksMemoryUsed</strong>，<strong>currentUnrollMemory</strong>描述了<strong>MemoryStore</strong>的内存模型。</li>
+</ol>
+<p>理解了<strong>MemoryStore</strong>的<strong>基本属性</strong>，对于其<strong>概念性描述的基本方法</strong>，以及重要的<strong>内存模型</strong>，下一篇将对Block数据的存储过程进行详细的讲解。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryEntry"><span class="toc-number">2.</span> <span class="toc-text">MemoryEntry</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DeserializedMemoryEntry"><span class="toc-number">2.1.</span> <span class="toc-text">DeserializedMemoryEntry</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SerializedMemoryEntry"><span class="toc-number">2.2.</span> <span class="toc-text">SerializedMemoryEntry</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore属性"><span class="toc-number">3.</span> <span class="toc-text">MemoryStore属性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BlockEvictionHandler"><span class="toc-number">4.</span> <span class="toc-text">BlockEvictionHandler</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore方法-对MemoryStore模型提供概念上的描述"><span class="toc-number">5.</span> <span class="toc-text">MemoryStore方法(对MemoryStore模型提供概念上的描述)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#maxMemory"><span class="toc-number">5.1.</span> <span class="toc-text">maxMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#memoryUsed"><span class="toc-number">5.2.</span> <span class="toc-text">memoryUsed</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#currentUnrollMemory"><span class="toc-number">5.3.</span> <span class="toc-text">currentUnrollMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#blocksMemoryUsed"><span class="toc-number">5.4.</span> <span class="toc-text">blocksMemoryUsed</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#reserveUnrollMemoryForThisTask"><span class="toc-number">5.5.</span> <span class="toc-text">reserveUnrollMemoryForThisTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseUnrollMemoryForThisTask"><span class="toc-number">5.6.</span> <span class="toc-text">releaseUnrollMemoryForThisTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#currentUnrollMemoryForThisTask"><span class="toc-number">5.7.</span> <span class="toc-text">currentUnrollMemoryForThisTask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#numTaskUnrolling"><span class="toc-number">5.8.</span> <span class="toc-text">numTaskUnrolling</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore内存模型"><span class="toc-number">6.</span> <span class="toc-text">MemoryStore内存模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">7.</span> <span class="toc-text">小结</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/" target="_blank" rel="noopener"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&text=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&is_video=false&description=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spark Core [源码解析] MemoryStore(1)&body=Check out this article: http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&title=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&name=Spark Core [源码解析] MemoryStore(1)&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/&t=Spark Core [源码解析] MemoryStore(1)" target="_blank" rel="noopener"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2020
+    SinGle IP
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>
