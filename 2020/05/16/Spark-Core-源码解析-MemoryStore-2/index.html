@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="概述 本章将会针对将Block数据存储进内存的方法与过程进行详细讲解。 本章将重点关注putIterator方法，该方法真正实现了将大型Block数据写入内存的操作，即为了防止一次性写入Block数据造成OOM而使用的逐渐展开Block数据的方法。 根据序列化与反序列化的数据而定义的putIteratorAsBytes和putIteratorAsValues两个方法都将调用putIterator方">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Core [源码解析] MemoryStore(2)">
+<meta property="og:url" content="http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="概述 本章将会针对将Block数据存储进内存的方法与过程进行详细讲解。 本章将重点关注putIterator方法，该方法真正实现了将大型Block数据写入内存的操作，即为了防止一次性写入Block数据造成OOM而使用的逐渐展开Block数据的方法。 根据序列化与反序列化的数据而定义的putIteratorAsBytes和putIteratorAsValues两个方法都将调用putIterator方">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-15T16:50:49.000Z">
+<meta property="article:modified_time" content="2020-05-15T16:51:54.530Z">
+<meta property="article:author" content="SinGle IP">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Spark Core [源码解析] MemoryStore(2)</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/05/15/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-1/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/" target="_blank" rel="noopener"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&text=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&is_video=false&description=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spark Core [源码解析] MemoryStore(2)&body=Check out this article: http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&name=Spark Core [源码解析] MemoryStore(2)&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&t=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore方法-Block数据的存储和读取"><span class="toc-number">2.</span> <span class="toc-text">MemoryStore方法(Block数据的存储和读取)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#putIterator"><span class="toc-number">2.1.</span> <span class="toc-text">putIterator</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#变量解释"><span class="toc-number">2.1.1.</span> <span class="toc-text">变量解释</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ValuesHolder"><span class="toc-number">2.1.2.</span> <span class="toc-text">ValuesHolder</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DeserializedValuesHolder"><span class="toc-number">2.1.3.</span> <span class="toc-text">DeserializedValuesHolder</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#MemoryEntryBuilder"><span class="toc-number">2.1.3.1.</span> <span class="toc-text">MemoryEntryBuilder</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码解析"><span class="toc-number">2.1.4.</span> <span class="toc-text">源码解析</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#putIteratorAsValues"><span class="toc-number">2.2.</span> <span class="toc-text">putIteratorAsValues</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PartiallyUnrolledIterator"><span class="toc-number">2.2.1.</span> <span class="toc-text">PartiallyUnrolledIterator</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#putIteratorAsBytes"><span class="toc-number">2.3.</span> <span class="toc-text">putIteratorAsBytes</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PartiallySerializedBlock"><span class="toc-number">2.3.1.</span> <span class="toc-text">PartiallySerializedBlock</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Spark Core [源码解析] MemoryStore(2)
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">SinGle's Cabin</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-05-15T16:50:49.000Z" itemprop="datePublished">2020-05-16</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><ul>
+<li>本章将会针对将Block数据存储进内存的方法与过程进行详细讲解。</li>
+<li>本章将重点关注<strong>putIterator</strong>方法，该方法真正实现了将大型Block数据写入内存的操作，即为了防止一次性写入Block数据造成<strong>OOM</strong>而使用的逐渐展开Block数据的方法。</li>
+<li>根据序列化与反序列化的数据而定义的<strong>putIteratorAsBytes</strong>和<strong>putIteratorAsValues</strong>两个方法都将调用<strong>putIterator</strong>方法实现<strong>Block</strong>数据到内存的写入，并根据<strong>putIterator</strong>方法返回的结果类型返回对应的<strong>PartiallySerializedBlock</strong>和<strong>PartiallyUnrolledIterator</strong>，然后进行进一步的展开操作。</li>
+</ul>
+<h2 id="MemoryStore方法-Block数据的存储和读取"><a href="#MemoryStore方法-Block数据的存储和读取" class="headerlink" title="MemoryStore方法(Block数据的存储和读取)"></a>MemoryStore方法(Block数据的存储和读取)</h2><h3 id="putIterator"><a href="#putIterator" class="headerlink" title="putIterator"></a>putIterator</h3><ul>
+<li>个人认为，该方法为MemoryStore最为重要的核心方法之一，它实现了将Block数据存储到内存的过程。即将<strong>BlockId</strong>对应的<strong>Block</strong>(已转化为<strong>Iterator</strong>)写入内存。</li>
+<li>有时候，需要写入内存的Block很大，一次性写入内存可能会发生<strong>OOM</strong>，为了避免OOM，会将<strong>Block</strong>转换为<strong>Iterator</strong>，然后<u><strong>渐进式的展开Iterator</strong></u>，并<u><strong>周期性的检查</strong></u>是否有足够的展开内存。(这里周期并不是指时间，而是已经展开的元素的数量。)</li>
+<li>如果该<strong>Iterator</strong>最后被成功写入内存(<strong>顺利unroll整个Iterator</strong>)，将会调用<strong>MemoryManager</strong>的<strong>acquireStorageMemory</strong>方法<u><strong>将用于unroll的内存转换为storage内存</strong></u>。</li>
+<li><strong>putIteratorAsValues</strong>和<strong>putIteratorAsBytes</strong>都将调用该方法来实现将Block数据写入内存这一目的。</li>
+</ul>
+<h4 id="变量解释"><a href="#变量解释" class="headerlink" title="变量解释"></a>变量解释</h4><p>由于以下代码非常长且涉及到了诸多变量，此处将做一个宏观解释。</p>
+<table>
+<thead>
+<tr>
+<th>变量名</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>elementsUnrolled</strong></td>
+<td>到目前为止，已经展开的元素数量。</td>
+</tr>
+<tr>
+<td><strong>keepUnrolling</strong></td>
+<td>MemoryStore是否仍然有足够的内存，以便继续展开Block(即Iterator)。默认为true，即默认是有足够内存用以继续展开。</td>
+</tr>
+<tr>
+<td><strong>initialMemoryThreshold</strong></td>
+<td>即unrollMemoryThreshold，每一个task在展开Block之前，所请求的初始内存的大小，默认是1M。(1024*1024)</td>
+</tr>
+<tr>
+<td><strong>memoryCheckPeriod</strong></td>
+<td>检查内存是否足够的阀值，此值默认为16，并非指时间，而是已经展开的袁术的数量elementsUnrolled。</td>
+</tr>
+<tr>
+<td><strong>memoryThreshold</strong></td>
+<td>当前task用于展开Block所保留的内存。初始值为<strong>initialMemoryThreshold</strong>的值，即1M。</td>
+</tr>
+<tr>
+<td><strong>memoryGrowthFactor</strong></td>
+<td>内存不足时，请求增长的因子，默认为1.5。</td>
+</tr>
+<tr>
+<td><strong>unrollMemoryUsedByThisBlock</strong></td>
+<td>当前Block已经使用的用于展开的内存大小，初始大小为0。</td>
+</tr>
+<tr>
+<td><strong>values</strong></td>
+<td>即需要被渐进式展开的Block数据，这里已经转换为Iterator类型。</td>
+</tr>
+</tbody></table>
+<h4 id="ValuesHolder"><a href="#ValuesHolder" class="headerlink" title="ValuesHolder"></a>ValuesHolder</h4><ul>
+<li>顾名思义，该变量用于存储value，即<u><strong>Iterator中被遍历的元素</strong></u>。</li>
+<li>定义了<strong>getBuilder</strong>方法，返回<strong>MemoryEntryBuilder</strong>，该方法返回了<strong>MemoryEntryBuilder</strong>，它将会创建<strong>MemoryEntry</strong>并获取存储的数据。</li>
+<li>注意，在调用了<strong>getBuilder</strong>方法后，<strong>ValuesHolder</strong>将变为<u><strong>不可用</strong></u>，不能再继续存储数据和测量数据大小。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">trait</span> <span class="title">ValuesHolder</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">storeValue</span></span>(value: <span class="type">T</span>): <span class="type">Unit</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">estimatedSize</span></span>(): <span class="type">Long</span></span><br><span class="line">   <span class="comment">// 在getBuilder方法被调用之后，ValuesHolder将变为不可用，不能再继续存储数据和测量数据大小。与此同时，该方法返回了MemoryEntryBuilder，它将会创建MemoryEntry并获取存储的数据。</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">getBuilder</span></span>(): <span class="type">MemoryEntryBuilder</span>[<span class="type">T</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="DeserializedValuesHolder"><a href="#DeserializedValuesHolder" class="headerlink" title="DeserializedValuesHolder"></a>DeserializedValuesHolder</h4><ul>
+<li>该方法继承了<strong>ValuesHolder</strong>特质，用来存储反序列化的<strong>values</strong>。</li>
+<li><strong>vector</strong>变量是<strong>DeserializedValuesHolder</strong>的重点变量，实际上就是通过vector来进行values的存储的。</li>
+<li><strong>vector</strong>实际上是<strong>SizeTrackingVector</strong>，是以<strong>append</strong>方式，跟踪记录它<strong>估算</strong>的字节大小。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">DeserializedValuesHolder</span>[<span class="type">T</span>] (<span class="params">classTag: <span class="type">ClassTag</span>[<span class="type">T</span>]</span>) <span class="keyword">extends</span> <span class="title">ValuesHolder</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">  <span class="comment">// Underlying vector for unrolling the block</span></span><br><span class="line">  <span class="keyword">var</span> vector = <span class="keyword">new</span> <span class="type">SizeTrackingVector</span>[<span class="type">T</span>]()(classTag)</span><br><span class="line">  <span class="keyword">var</span> arrayValues: <span class="type">Array</span>[<span class="type">T</span>] = <span class="literal">null</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">storeValue</span></span>(value: <span class="type">T</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">  <span class="comment">// 在vector上追加value</span></span><br><span class="line">    vector += value</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// 重载估算大小的方法，实际上调用的就是vector.estimateSize</span></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">estimatedSize</span></span>(): <span class="type">Long</span> = &#123;</span><br><span class="line">    vector.estimateSize()</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// getBuilder方法用于获取MemoryEntryBuilder，后者用于创建对应MemoryMode的MemoryEntry</span></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">getBuilder</span></span>(): <span class="type">MemoryEntryBuilder</span>[<span class="type">T</span>] = <span class="keyword">new</span> <span class="type">MemoryEntryBuilder</span>[<span class="type">T</span>] &#123;</span><br><span class="line">    <span class="comment">// We successfully unrolled the entirety of this block</span></span><br><span class="line">    arrayValues = vector.toArray</span><br><span class="line">    vector = <span class="literal">null</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">override</span> <span class="keyword">val</span> preciseSize: <span class="type">Long</span> = <span class="type">SizeEstimator</span>.estimate(arrayValues)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">build</span></span>(): <span class="type">MemoryEntry</span>[<span class="type">T</span>] =</span><br><span class="line">    <span class="comment">// 可以看到实际上实例化了DeserializedMemoryEntry</span></span><br><span class="line">      <span class="type">DeserializedMemoryEntry</span>[<span class="type">T</span>](arrayValues, preciseSize, classTag)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="MemoryEntryBuilder"><a href="#MemoryEntryBuilder" class="headerlink" title="MemoryEntryBuilder"></a>MemoryEntryBuilder</h5><ul>
+<li>紧跟<strong>ValuesHolder</strong>方法，<strong>MemoryEntryBuilder</strong>方法定义了<strong>build</strong>方法，最终将返回<strong>MemoryEntry</strong></li>
+<li>所以<u><strong>Block在内存中的抽象MemoryEntry其实是在这里被创建的</strong></u>。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">trait</span> <span class="title">MemoryEntryBuilder</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">preciseSize</span></span>: <span class="type">Long</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">build</span></span>(): <span class="type">MemoryEntry</span>[<span class="type">T</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h4><p>在了解了基本的变量含义用途，以及两个关键的特质<strong>ValuesHolder</strong>，<strong>MemoryEntryBuilder</strong>后，我们直接开始看<strong>putIterator</strong>方法。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 首先注意，如果展开block成功，会直接返回存储该block数据所占用的内存大小值。</span></span><br><span class="line"><span class="comment">// 如果失败，返回展开该block所占用的大小，有两种可能的原因</span></span><br><span class="line"><span class="comment">// 1. block(即Iterator)只有部分被展开(未完全展开)</span></span><br><span class="line"><span class="comment">// 2. block已经被完全展开但是其最后实际所占用的展开内存过大，我们无法申请到额外的内存进行存储。</span></span><br><span class="line"> <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">putIterator</span></span>[<span class="type">T</span>](</span><br><span class="line">     blockId: <span class="type">BlockId</span>,</span><br><span class="line">     values: <span class="type">Iterator</span>[<span class="type">T</span>],</span><br><span class="line">     classTag: <span class="type">ClassTag</span>[<span class="type">T</span>],</span><br><span class="line">     memoryMode: <span class="type">MemoryMode</span>,</span><br><span class="line">     valuesHolder: <span class="type">ValuesHolder</span>[<span class="type">T</span>]): <span class="type">Either</span>[<span class="type">Long</span>, <span class="type">Long</span>] = &#123;</span><br><span class="line">   require(!contains(blockId), <span class="string">s"Block <span class="subst">$blockId</span> is already present in the MemoryStore"</span>)</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 到目前为止，已经展开的元素数量。</span></span><br><span class="line">   <span class="keyword">var</span> elementsUnrolled = <span class="number">0</span></span><br><span class="line">   <span class="comment">// MemoryStore是否仍然有足够的内存，以便继续展开Block(即Iterator)。</span></span><br><span class="line">   <span class="keyword">var</span> keepUnrolling = <span class="literal">true</span></span><br><span class="line">   <span class="comment">// 即unrollMemoryThreshold，每一个task在展开Block之前，所请求的初始内存的大小，默认是1M。(1024*1024)</span></span><br><span class="line">   <span class="keyword">val</span> initialMemoryThreshold = unrollMemoryThreshold</span><br><span class="line">   <span class="comment">// 检查内存是否足够的阀值，此值默认为16，并非指时间，而是已经展开的袁术的数量elementsUnrolled。</span></span><br><span class="line">   <span class="keyword">val</span> memoryCheckPeriod = conf.get(<span class="type">UNROLL_MEMORY_CHECK_PERIOD</span>)</span><br><span class="line">   <span class="comment">// 当前task用于展开Block所保留的内存。初始值为**initialMemoryThreshold**的值，即1M。</span></span><br><span class="line">   <span class="keyword">var</span> memoryThreshold = initialMemoryThreshold</span><br><span class="line">   <span class="comment">// 内存不足时，请求增长的因子，默认为1.5。</span></span><br><span class="line">   <span class="keyword">val</span> memoryGrowthFactor = conf.get(<span class="type">UNROLL_MEMORY_GROWTH_FACTOR</span>)</span><br><span class="line">   <span class="comment">// 当前Block已经使用的用于展开的内存大小，初始大小为0.</span></span><br><span class="line">   <span class="keyword">var</span> unrollMemoryUsedByThisBlock = <span class="number">0</span>L</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 首先调用reserveUnrollMemoryForThisTask为该任务在堆内或堆外中展开block申请需要的内存</span></span><br><span class="line">   <span class="comment">// 可以看到，初始申请的内存为initailMemoryThreshold即1M。</span></span><br><span class="line">   keepUnrolling =</span><br><span class="line">     reserveUnrollMemoryForThisTask(blockId, initialMemoryThreshold, memoryMode)</span><br><span class="line">   <span class="comment">// 因为实质调用的是memoryManager.acquireUnrollMemory，返回Boolean</span></span><br><span class="line">   <span class="comment">// 没有申请到，直接WARNING</span></span><br><span class="line">   <span class="keyword">if</span> (!keepUnrolling) &#123;</span><br><span class="line">     logWarning(<span class="string">s"Failed to reserve initial memory threshold of "</span> +</span><br><span class="line">       <span class="string">s"<span class="subst">$&#123;Utils.bytesToString(initialMemoryThreshold)&#125;</span> for computing block <span class="subst">$blockId</span> in memory."</span>)</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="comment">// 若申请成功，直接将申请到的内存添加到当前Block已经使用的展开内存大小。</span></span><br><span class="line">     unrollMemoryUsedByThisBlock += initialMemoryThreshold</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// Unroll this block safely, checking whether we have exceeded our threshold periodically</span></span><br><span class="line">   <span class="comment">// 不断的循环，values即Iterator中是否还有未被展开的元素，如果有的话，是否还能够为当前任务线程在堆内或堆外获取到所需要大小的内存。</span></span><br><span class="line">   <span class="keyword">while</span> (values.hasNext &amp;&amp; keepUnrolling) &#123;</span><br><span class="line">   <span class="comment">// 如果都满足，调用valuesHolder.storeValue存储Iterator的元素。</span></span><br><span class="line">     valuesHolder.storeValue(values.next())</span><br><span class="line">     <span class="comment">// 取模运算，若当前已经展开的元素数量elementsUnrolled 与 memoryCheckPeriod(默认每16个元素检查一次) 相除余数为0</span></span><br><span class="line">     <span class="comment">// 这里需要耐心理解，这里两者相除余数为0，意味着当前已经展开的元素数量，刚好是我们规定的检查周期的倍数，意味着到了需要检查当前已经展开的数据所占用的内存(currentSize)是否已经超过了我们设置的阀值(memoryThreshold)。</span></span><br><span class="line">     <span class="keyword">if</span> (elementsUnrolled % memoryCheckPeriod == <span class="number">0</span>) &#123;</span><br><span class="line">       <span class="keyword">val</span> currentSize = valuesHolder.estimatedSize()</span><br><span class="line">       <span class="comment">// 如果当前展开的数据所占用的内存已经超过阀值，则按照公式计算需要申请增加的内存。</span></span><br><span class="line">       <span class="comment">// 需要申请增加内存 = 当前展开占用内存 * 内存增长因子 - 当前阀值</span></span><br><span class="line">       <span class="keyword">if</span> (currentSize &gt;= memoryThreshold) &#123;</span><br><span class="line">         <span class="keyword">val</span> amountToRequest = (currentSize * memoryGrowthFactor - memoryThreshold).toLong</span><br><span class="line">         <span class="comment">// 得到需要申请增加的内存大小后，直接调用reserveUnrollMemoryForThisTask方法为当前任务尝试线程申请内存。</span></span><br><span class="line">         keepUnrolling =</span><br><span class="line">           reserveUnrollMemoryForThisTask(blockId, amountToRequest, memoryMode)</span><br><span class="line">           <span class="comment">// 如果申请成功，当前Block展开所消耗的内存总量随之递增相应大小。</span></span><br><span class="line">         <span class="keyword">if</span> (keepUnrolling) &#123;</span><br><span class="line">           unrollMemoryUsedByThisBlock += amountToRequest</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="comment">// New threshold is currentSize * memoryGrowthFactor</span></span><br><span class="line">         <span class="comment">// 这里可以发现阀值是动态变化的，随着每一次申请新内存而增加</span></span><br><span class="line">         <span class="comment">// 公式为 新阀值 = 当前展开占用内存 * 内存增长因子</span></span><br><span class="line">         memoryThreshold += amountToRequest</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="comment">// 若取模运算结果不为0，说明还没有到检查内存是否足够的周期检查点，</span></span><br><span class="line">     <span class="comment">// 直接将到目前为止展开的元素总数自增1即可。</span></span><br><span class="line">     elementsUnrolled += <span class="number">1</span></span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// Make sure that we have enough memory to store the block. By this point, it is possible that</span></span><br><span class="line">   <span class="comment">// the block's actual memory usage has exceeded the unroll memory by a small amount, so we</span></span><br><span class="line">   <span class="comment">// perform one final call to attempt to allocate additional memory if necessary.</span></span><br><span class="line">   <span class="comment">// 为了确保我们有足够的内存去存储当前Block(即Iterator)</span></span><br><span class="line">   <span class="comment">// 在while循环结束这个时间点，当前Block实际上占用的内存可能比我们记录在案的当前Block已经使用的内存unrollMemoryUsedByThisBlock要多。</span></span><br><span class="line">   <span class="comment">// 可以这么理解，即while循环结束的时候，其迭代次数并没有达到我们设定的检查点memoryCheckPeriod，但是又超过了上次的检查点memoryCheckPeriod，这就导致新展开的element直接被加入了valuesHolder，却没有检查到底剩余空间是否足够。</span></span><br><span class="line">   <span class="comment">// 所以这里将做最后一次的内存申请，保证最终一定有足够的内存存储该Block。</span></span><br><span class="line">   <span class="keyword">if</span> (keepUnrolling) &#123;</span><br><span class="line">   <span class="comment">// 这里直接调用getBuilder方法，创建MemoryEntryBuilder。</span></span><br><span class="line">     <span class="keyword">val</span> entryBuilder = valuesHolder.getBuilder()</span><br><span class="line">     <span class="comment">// 然后调用preciseSize方法获取其大小，即实际上占用的内存空间。</span></span><br><span class="line">     <span class="keyword">val</span> size = entryBuilder.preciseSize</span><br><span class="line">     <span class="comment">// 如果实际上占用的空间size，比记录在案的当前Block所占用的内存空间unrollMemoryUsedByThisBlock大</span></span><br><span class="line">     <span class="keyword">if</span> (size &gt; unrollMemoryUsedByThisBlock) &#123;</span><br><span class="line">     <span class="comment">// 即内存不足了，需要申请，申请大小就是超出的内存大小。</span></span><br><span class="line">       <span class="keyword">val</span> amountToRequest = size - unrollMemoryUsedByThisBlock</span><br><span class="line">       <span class="comment">// 最后一次调用reserveUnrollMemoryForThisTask为当前任务线程申请内存</span></span><br><span class="line">       keepUnrolling = reserveUnrollMemoryForThisTask(blockId, amountToRequest, memoryMode)</span><br><span class="line">       <span class="comment">// 如果申请成功，最后将申请到的内存累加到Block所占用的内存空间上。</span></span><br><span class="line">       <span class="keyword">if</span> (keepUnrolling) &#123;</span><br><span class="line">         unrollMemoryUsedByThisBlock += amountToRequest</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="comment">// 如果上面申请内存成功</span></span><br><span class="line">     <span class="keyword">if</span> (keepUnrolling) &#123;</span><br><span class="line">     <span class="comment">// 创建MemoryEntry，所以Block在Memory中的抽象MemoryEntry是在这里创建的。</span></span><br><span class="line">       <span class="keyword">val</span> entry = entryBuilder.build()</span><br><span class="line">       <span class="comment">// Synchronize so that transfer is atomic</span></span><br><span class="line">       memoryManager.synchronized &#123;</span><br><span class="line">       <span class="comment">// 释放当前任务线程所占用的内存</span></span><br><span class="line">         releaseUnrollMemoryForThisTask(memoryMode, unrollMemoryUsedByThisBlock)</span><br><span class="line">         <span class="comment">// 直接调用MemoryManager.acquireStorageMemory为当前blockId对应的Block申请其实际占用的内存(entry.size)。</span></span><br><span class="line">         <span class="comment">// 可以理解为这里是将展开内存unroll memory转换为存储内存storage memory。</span></span><br><span class="line">         <span class="keyword">val</span> success = memoryManager.acquireStorageMemory(blockId, entry.size, memoryMode)</span><br><span class="line">         assert(success, <span class="string">"transferring unroll memory to storage memory failed"</span>)</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       entries.synchronized &#123;</span><br><span class="line">       <span class="comment">// 将BlockId和MemoryEntry的映射关系添加到entries映射表中</span></span><br><span class="line">         entries.put(blockId, entry)</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       logInfo(<span class="string">"Block %s stored as values in memory (estimated size %s, free %s)"</span>.format(blockId,</span><br><span class="line">         <span class="type">Utils</span>.bytesToString(entry.size), <span class="type">Utils</span>.bytesToString(maxMemory - blocksMemoryUsed)))</span><br><span class="line">         <span class="comment">// 返回Right(实际占用的内存大小)</span></span><br><span class="line">       <span class="type">Right</span>(entry.size)</span><br><span class="line">     &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">       <span class="comment">// 如果申请内存失败，即内存不足，返回Left(当前Block所占用的展开内存的总大小)</span></span><br><span class="line">       logUnrollFailureMessage(blockId, entryBuilder.preciseSize)</span><br><span class="line">       <span class="type">Left</span>(unrollMemoryUsedByThisBlock)</span><br><span class="line">     &#125;</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="comment">// 如果申请内存失败，即内存不足，返回Left(当前Block所占用的展开内存的总大小)</span></span><br><span class="line">     logUnrollFailureMessage(blockId, valuesHolder.estimatedSize())</span><br><span class="line">     <span class="type">Left</span>(unrollMemoryUsedByThisBlock)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="putIteratorAsValues"><a href="#putIteratorAsValues" class="headerlink" title="putIteratorAsValues"></a>putIteratorAsValues</h3><ul>
+<li>尝试以<strong>value</strong>的形式存储<strong>bock</strong>(即<strong>Iterator</strong>)数据</li>
+<li>如果展开<strong>Iterator</strong>成功，返回存储展开该<strong>block</strong>数据占用的估算内存大小。(堆内内存无法精确得到占用的内存。)</li>
+<li>如果展开<strong>Iterator</strong>失败，返回包含<strong>block</strong>数据(<strong>values</strong>)的<strong>Iterator</strong>，这里为<strong>PartiallyUnrolledIterator</strong>，即<u><strong>部分展开</strong></u>的<strong>Iterator</strong>。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 从入参的返回值就可以发现，共两种类型的返回，第一种为PartiallyUnrolledIterator,另一种则是整形(block数据的大小)</span></span><br><span class="line">  <span class="keyword">private</span>[storage] <span class="function"><span class="keyword">def</span> <span class="title">putIteratorAsValues</span></span>[<span class="type">T</span>](</span><br><span class="line">      blockId: <span class="type">BlockId</span>,</span><br><span class="line">      values: <span class="type">Iterator</span>[<span class="type">T</span>],</span><br><span class="line">      classTag: <span class="type">ClassTag</span>[<span class="type">T</span>]): <span class="type">Either</span>[<span class="type">PartiallyUnrolledIterator</span>[<span class="type">T</span>], <span class="type">Long</span>] = &#123;</span><br><span class="line"><span class="comment">// 创建valuesHolder实例，这里为反序列化的valuesHolder</span></span><br><span class="line">    <span class="keyword">val</span> valuesHolder = <span class="keyword">new</span> <span class="type">DeserializedValuesHolder</span>[<span class="type">T</span>](classTag)</span><br><span class="line"><span class="comment">// 调用putIterator方法，注意DeserializedValuesHolder所创建的是DeserializedMemoryEntry，只支持ON_HEAP即堆内内存上申请展开内存，所以这里入参直接填写的就是ON_HEAP的MemoryMode</span></span><br><span class="line">    putIterator(blockId, values, classTag, <span class="type">MemoryMode</span>.<span class="type">ON_HEAP</span>, valuesHolder) <span class="keyword">match</span> &#123;</span><br><span class="line">    <span class="comment">// 如果返回MemoryEntry占用的内存大小，即DeserializedMemoryEntry.size，</span></span><br><span class="line">    <span class="comment">// 说明展开Block(Iterator)成功，直接返回该值即可。</span></span><br><span class="line">      <span class="keyword">case</span> <span class="type">Right</span>(storedSize) =&gt; <span class="type">Right</span>(storedSize)</span><br><span class="line">      <span class="comment">// 如果返回的是已经占用的展开内存大小，即展开Block(Iterator)失败了</span></span><br><span class="line">      <span class="keyword">case</span> <span class="type">Left</span>(unrollMemoryUsedByThisBlock) =&gt;</span><br><span class="line">      <span class="comment">// 通过判断vector是否为null来返回iterator或者arrayValues</span></span><br><span class="line">      <span class="comment">// 观察DeserializedValuesHolder能够发现，getBuilder方法被成功调用后，vector会被赋值为null，并转化为array。所以如vector非null，即getBuilder方法没有被正常调用。</span></span><br><span class="line">        <span class="keyword">val</span> unrolledIterator = <span class="keyword">if</span> (valuesHolder.vector != <span class="literal">null</span>) &#123;</span><br><span class="line">          valuesHolder.vector.iterator</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          valuesHolder.arrayValues.toIterator</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 如果展开失败，返回PartiallyUnrolledIterator</span></span><br><span class="line">        <span class="type">Left</span>(<span class="keyword">new</span> <span class="type">PartiallyUnrolledIterator</span>(</span><br><span class="line">          <span class="keyword">this</span>,</span><br><span class="line">          <span class="type">MemoryMode</span>.<span class="type">ON_HEAP</span>,</span><br><span class="line">          unrollMemoryUsedByThisBlock,</span><br><span class="line">          unrolled = unrolledIterator,</span><br><span class="line">          rest = values))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="PartiallyUnrolledIterator"><a href="#PartiallyUnrolledIterator" class="headerlink" title="PartiallyUnrolledIterator"></a>PartiallyUnrolledIterator</h4><ul>
+<li>当 <strong>MemoryStore.putIteratorAsValues()</strong> 方法执行失败时返回的结果。</li>
+<li>可以理解为，<strong>PartiallyUnrolledIterator</strong>包含两个核心的<strong>Iterator</strong>,一个叫<strong>unrolled</strong>,内部是<u><strong>已经被展开</strong></u>的<strong>Block</strong>数据，另一个叫<strong>rest</strong>，即“其余的”，内部包含的是<u><strong>未被展开</strong></u>的<strong>Block</strong>数据。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>构造参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>memoryStore</strong></td>
+<td>当前<strong>MemoryStore</strong>，用于释放已经展开的<strong>values</strong>(即<strong>Iterator</strong>中的元素)所占用的内存</td>
+</tr>
+<tr>
+<td><strong>memoryMode</strong></td>
+<td>当前使用的内存模式<strong>ON/OFF_HEAP</strong></td>
+</tr>
+<tr>
+<td><strong>unrollMemory</strong></td>
+<td>已经展开的values所占用的内存(<strong>unrolled</strong>中的<strong>values</strong>所占用的总内存)，即<strong>memoryStore</strong>需要进行释放的内存</td>
+</tr>
+<tr>
+<td><strong>unrolled</strong></td>
+<td>一个<strong>iterator</strong>，内部含有<u><strong>已经被展开</strong></u>的<strong>values</strong></td>
+</tr>
+<tr>
+<td><strong>rest</strong></td>
+<td>与已经展开的<strong>iterator</strong>区分，<strong>rest</strong>也是一个<strong>iterator</strong>，但是包含的是<u><strong>未被展开</strong></u>的<strong>values</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[storage] <span class="class"><span class="keyword">class</span> <span class="title">PartiallyUnrolledIterator</span>[<span class="type">T</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">    memoryStore: <span class="type">MemoryStore</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    memoryMode: <span class="type">MemoryMode</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    unrollMemory: <span class="type">Long</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    private[this] var unrolled: <span class="type">Iterator</span>[<span class="type">T</span>],</span></span></span><br><span class="line"><span class="class"><span class="params">    rest: <span class="type">Iterator</span>[<span class="type">T</span>]</span>)</span></span><br><span class="line"><span class="class">  <span class="keyword">extends</span> <span class="title">Iterator</span>[<span class="type">T</span>] </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">releaseUnrollMemory</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">  <span class="comment">// 一路追溯可以发现这里实际上调用的就是StorageMemoryPool里的releaseMemory()方法进行存储内存的释放</span></span><br><span class="line">    memoryStore.releaseUnrollMemoryForThisTask(memoryMode, unrollMemory)</span><br><span class="line">    <span class="comment">// 成功释放内存后，赋值unrolled迭代器为null</span></span><br><span class="line">    unrolled = <span class="literal">null</span></span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// 此处可以理解为，如果unrolled这个包含已经展开的values的iterator(即unrolled)被赋值为null，意味着其占用的内存也被释放，从而有内存空间进行下一波的unroll操作</span></span><br><span class="line"><span class="comment">// 该方法返回布尔值，即是否还有剩余的values等待被unroll</span></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">hasNext</span></span>: <span class="type">Boolean</span> = &#123;</span><br><span class="line">    <span class="keyword">if</span> (unrolled == <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="comment">// 如果unrolled被清空，查看rest(包含未被展开的values的Iterator)是否为空</span></span><br><span class="line">    <span class="comment">// 如果存在未被展开的values，返回true</span></span><br><span class="line">      rest.hasNext</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!unrolled.hasNext) &#123;</span><br><span class="line">    <span class="comment">// 如果unrolled为空，释放展开block所占用的内存，查看是否有等待展开的values</span></span><br><span class="line">      releaseUnrollMemory()</span><br><span class="line">      rest.hasNext</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">next</span></span>(): <span class="type">T</span> = &#123;</span><br><span class="line">    <span class="keyword">if</span> (unrolled == <span class="literal">null</span> || !unrolled.hasNext) &#123;</span><br><span class="line">      rest.next()</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      unrolled.next()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="comment">// 该方法直接释放所有展开Block占用的内存，并销毁该PartiallyUnrolledIterator</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">close</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">if</span> (unrolled != <span class="literal">null</span>) &#123;</span><br><span class="line">      releaseUnrollMemory()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="putIteratorAsBytes"><a href="#putIteratorAsBytes" class="headerlink" title="putIteratorAsBytes"></a>putIteratorAsBytes</h3><p>官方对于该方法的几点解释：</p>
+<ul>
+<li>与<strong>putIteratorAsValues</strong>相对的，<strong>putIteratorAsBytes</strong>方法以<strong>bytes</strong>形式将<strong>Block</strong>数据存储到内存当中。</li>
+<li>若执行成功，返回展开的<strong>Block</strong>数据所占用的大小。(<strong>Long</strong>)</li>
+<li>若执行失败，返回<strong>PartiallySerializedBlock[T]</strong> 该实例通过将数据溢出到磁盘来完成序列化，或者反序列化已经部分序列化的<strong>block</strong>数据并重建原始输入的<strong>Iterator</strong>。调用者必须保证该Iterator被完全消费或者调用discard()方法，从而保证部分已经被展开的block所占用的内存被释放掉。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">private</span>[storage] <span class="function"><span class="keyword">def</span> <span class="title">putIteratorAsBytes</span></span>[<span class="type">T</span>](</span><br><span class="line">  <span class="comment">// 只有两种类型的返回，PartiallySerializedBlock[T], Long</span></span><br><span class="line">      blockId: <span class="type">BlockId</span>,</span><br><span class="line">      values: <span class="type">Iterator</span>[<span class="type">T</span>],</span><br><span class="line">      classTag: <span class="type">ClassTag</span>[<span class="type">T</span>],</span><br><span class="line">      memoryMode: <span class="type">MemoryMode</span>): <span class="type">Either</span>[<span class="type">PartiallySerializedBlock</span>[<span class="type">T</span>], <span class="type">Long</span>] = &#123;</span><br><span class="line"></span><br><span class="line">    require(!contains(blockId), <span class="string">s"Block <span class="subst">$blockId</span> is already present in the MemoryStore"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 每个task用于unroll Block数据的初始内存，默认是1M (bytes).</span></span><br><span class="line">    <span class="keyword">val</span> initialMemoryThreshold = unrollMemoryThreshold</span><br><span class="line">    <span class="keyword">val</span> chunkSize = <span class="keyword">if</span> (initialMemoryThreshold &gt; <span class="type">ByteArrayMethods</span>.<span class="type">MAX_ROUNDED_ARRAY_LENGTH</span>) &#123;</span><br><span class="line">      logWarning(<span class="string">s"Initial memory threshold of <span class="subst">$&#123;Utils.bytesToString(initialMemoryThreshold)&#125;</span> "</span> +</span><br><span class="line">        <span class="string">s"is too large to be set as chunk size. Chunk size has been capped to "</span> +</span><br><span class="line">        <span class="string">s"<span class="subst">$&#123;Utils.bytesToString(ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH)&#125;</span>"</span>)</span><br><span class="line">      <span class="type">ByteArrayMethods</span>.<span class="type">MAX_ROUNDED_ARRAY_LENGTH</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      initialMemoryThreshold.toInt</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">// 创建SerializedValuesHolder，存储的是序列化的数据</span></span><br><span class="line">    <span class="keyword">val</span> valuesHolder = <span class="keyword">new</span> <span class="type">SerializedValuesHolder</span>[<span class="type">T</span>](blockId, chunkSize, classTag,</span><br><span class="line">      memoryMode, serializerManager)</span><br><span class="line"><span class="comment">// 调用putIterator方法，对Block数据进行展开</span></span><br><span class="line">    putIterator(blockId, values, classTag, memoryMode, valuesHolder) <span class="keyword">match</span> &#123;</span><br><span class="line">    <span class="comment">// 老样子，若putIterator返回的是storedSize，即展开成功，直接照着返回即可</span></span><br><span class="line">      <span class="keyword">case</span> <span class="type">Right</span>(storedSize) =&gt; <span class="type">Right</span>(storedSize)</span><br><span class="line">      <span class="comment">// 若返回的是展开的Block所占用的内存，即展开失败</span></span><br><span class="line">      <span class="keyword">case</span> <span class="type">Left</span>(unrollMemoryUsedByThisBlock) =&gt;</span><br><span class="line">      <span class="comment">// 则返回PartiallySerializedBlock</span></span><br><span class="line">        <span class="type">Left</span>(<span class="keyword">new</span> <span class="type">PartiallySerializedBlock</span>(</span><br><span class="line">          <span class="keyword">this</span>,</span><br><span class="line">          serializerManager,</span><br><span class="line">          blockId,</span><br><span class="line">          valuesHolder.serializationStream,</span><br><span class="line">          valuesHolder.redirectableStream,</span><br><span class="line">          unrollMemoryUsedByThisBlock,</span><br><span class="line">          memoryMode,</span><br><span class="line">          valuesHolder.bbos,</span><br><span class="line">          values,</span><br><span class="line">          classTag))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="PartiallySerializedBlock"><a href="#PartiallySerializedBlock" class="headerlink" title="PartiallySerializedBlock"></a>PartiallySerializedBlock</h4><ul>
+<li>MemoryStore.putIteratorAsBytes 执行失败的返回结果。</li>
+<li>重点之一<strong>serializationStream</strong>和<strong>redirectableOutputStream</strong>，前者用于向后者写入序列化数据。</li>
+<li>重点之二<strong>bbos</strong>即byte buffer output stream,类型为<strong>ChunkedByteBufferOutputStream</strong>，变量<strong>unrolledBuffer</strong>返回的就是bbos转化的<strong>ChunkedByteBuffer</strong>。</li>
+</ul>
+<p>构造函数入参一览：</p>
+<table>
+<thead>
+<tr>
+<th>构造参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>memoryStore</strong></td>
+<td>当前memoryStore，用于释放内存</td>
+</tr>
+<tr>
+<td><strong>serializerManager</strong></td>
+<td>序列化管理器，用于反序列化values</td>
+</tr>
+<tr>
+<td><strong>blockId</strong></td>
+<td>当前block id</td>
+</tr>
+<tr>
+<td><strong>serializationStream</strong></td>
+<td>序列化流，用于向redirectableOutputStream写入数据</td>
+</tr>
+<tr>
+<td><strong>redirectableOutputStream</strong></td>
+<td>支持重定向的输出流</td>
+</tr>
+<tr>
+<td><strong>unrollMemory</strong></td>
+<td>已经展开的数据占用的内存大小，即unrolled内元素占用的总内存大小</td>
+</tr>
+<tr>
+<td><strong>memoryMode</strong></td>
+<td>ON/OFF_HEAP</td>
+</tr>
+<tr>
+<td><strong>bbos</strong></td>
+<td>byte buffer output stream缩写，即包含部分序列化values的输出字节流；<strong>redirectableOutputStream</strong>初始化时默认写入该输出流(可被重定向)</td>
+</tr>
+<tr>
+<td><strong>rest</strong></td>
+<td>原始Iterator，在去除该序列化部分后，剩余的将要交给<strong>putIteratorAsValues()</strong> 的部分</td>
+</tr>
+<tr>
+<td><strong>classTag</strong></td>
+<td>block类型标识</td>
+</tr>
+</tbody></table>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[storage] <span class="class"><span class="keyword">class</span> <span class="title">PartiallySerializedBlock</span>[<span class="type">T</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">    memoryStore: <span class="type">MemoryStore</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    serializerManager: <span class="type">SerializerManager</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    blockId: <span class="type">BlockId</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    private val serializationStream: <span class="type">SerializationStream</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    private val redirectableOutputStream: <span class="type">RedirectableOutputStream</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    val unrollMemory: <span class="type">Long</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    memoryMode: <span class="type">MemoryMode</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    bbos: <span class="type">ChunkedByteBufferOutputStream</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    rest: <span class="type">Iterator</span>[<span class="type">T</span>],</span></span></span><br><span class="line"><span class="class"><span class="params">    classTag: <span class="type">ClassTag</span>[<span class="type">T</span>]</span>) </span>&#123;</span><br><span class="line"><span class="comment">// 这里可以看到，unrolledBuffer就是bbos转化为ChunkedByteBuffer</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">lazy</span> <span class="keyword">val</span> unrolledBuffer: <span class="type">ChunkedByteBuffer</span> = &#123;</span><br><span class="line">    bbos.close()</span><br><span class="line">    bbos.toChunkedByteBuffer</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="type">Option</span>(<span class="type">TaskContext</span>.get()).foreach &#123; taskContext =&gt;</span><br><span class="line">    taskContext.addTaskCompletionListener[<span class="type">Unit</span>] &#123; _ =&gt;</span><br><span class="line">      <span class="comment">// 当一个task执行完毕，它所占用的unroll memory会被自动释放，所以这里避免内存的重复释放，就没有调用releaseUnrollMemoryForThisTask方法了。</span></span><br><span class="line">      unrolledBuffer.dispose()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 获取bbos转化的ChunkedByteBuffer</span></span><br><span class="line">  <span class="keyword">private</span>[storage] <span class="function"><span class="keyword">def</span> <span class="title">getUnrolledChunkedByteBuffer</span></span>: <span class="type">ChunkedByteBuffer</span> = unrolledBuffer</span><br><span class="line"><span class="comment">// 是否被丢弃，用discard表示，默认未被丢弃</span></span><br><span class="line">  <span class="keyword">private</span>[<span class="keyword">this</span>] <span class="keyword">var</span> discarded = <span class="literal">false</span></span><br><span class="line">  <span class="comment">// 是否被完全消费，用consumed表示，默认未被完全消费</span></span><br><span class="line">  <span class="keyword">private</span>[<span class="keyword">this</span>] <span class="keyword">var</span> consumed = <span class="literal">false</span></span><br><span class="line"><span class="comment">// 根据以上两者抛出相应异常</span></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">verifyNotConsumedAndNotDiscarded</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">if</span> (consumed) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">IllegalStateException</span>(</span><br><span class="line">        <span class="string">"Can only call one of finishWritingToStream() or valuesIterator() and can only call once."</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (discarded) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">IllegalStateException</span>(<span class="string">"Cannot call methods on a discarded PartiallySerializedBlock"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryStore方法-Block数据的存储和读取"><span class="toc-number">2.</span> <span class="toc-text">MemoryStore方法(Block数据的存储和读取)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#putIterator"><span class="toc-number">2.1.</span> <span class="toc-text">putIterator</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#变量解释"><span class="toc-number">2.1.1.</span> <span class="toc-text">变量解释</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ValuesHolder"><span class="toc-number">2.1.2.</span> <span class="toc-text">ValuesHolder</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DeserializedValuesHolder"><span class="toc-number">2.1.3.</span> <span class="toc-text">DeserializedValuesHolder</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#MemoryEntryBuilder"><span class="toc-number">2.1.3.1.</span> <span class="toc-text">MemoryEntryBuilder</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码解析"><span class="toc-number">2.1.4.</span> <span class="toc-text">源码解析</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#putIteratorAsValues"><span class="toc-number">2.2.</span> <span class="toc-text">putIteratorAsValues</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PartiallyUnrolledIterator"><span class="toc-number">2.2.1.</span> <span class="toc-text">PartiallyUnrolledIterator</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#putIteratorAsBytes"><span class="toc-number">2.3.</span> <span class="toc-text">putIteratorAsBytes</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PartiallySerializedBlock"><span class="toc-number">2.3.1.</span> <span class="toc-text">PartiallySerializedBlock</span></a></li></ol></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/" target="_blank" rel="noopener"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&text=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&is_video=false&description=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spark Core [源码解析] MemoryStore(2)&body=Check out this article: http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&title=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&name=Spark Core [源码解析] MemoryStore(2)&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-2/&t=Spark Core [源码解析] MemoryStore(2)" target="_blank" rel="noopener"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2020
+    SinGle IP
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>
