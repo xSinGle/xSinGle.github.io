@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="MemoryMode 内存池实际上是对物理内存的逻辑规划 Spark用内存模式(MemoryMode)从逻辑上区分为堆内内存与堆外内存 MemoryMode为枚举类型，定义了堆内内存ON_HEAP与堆外内存OFF_HEAP  12345@Privatepublic enum MemoryMode &amp;#123;  ON_HEAP,  OFF_HEAP&amp;#125;  MemoryPool抽象类内存池">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Core [源码解析] MemoryPool">
+<meta property="og:url" content="http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="MemoryMode 内存池实际上是对物理内存的逻辑规划 Spark用内存模式(MemoryMode)从逻辑上区分为堆内内存与堆外内存 MemoryMode为枚举类型，定义了堆内内存ON_HEAP与堆外内存OFF_HEAP  12345@Privatepublic enum MemoryMode &amp;#123;  ON_HEAP,  OFF_HEAP&amp;#125;  MemoryPool抽象类内存池">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/MemoryPool.png">
+<meta property="og:image" content="http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/MemoryPool%E5%AE%8F%E8%A7%82%E5%85%B3%E7%B3%BB.png">
+<meta property="article:published_time" content="2020-05-16T06:24:09.000Z">
+<meta property="article:modified_time" content="2020-05-16T06:26:46.860Z">
+<meta property="article:author" content="SinGle IP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/MemoryPool.png">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>Spark Core [源码解析] MemoryPool</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+      
+<link rel="stylesheet" href="/css/rtl.css">
+
+    
+    <!-- rss -->
+    
+    
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" href="/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryStore-3/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/" target="_blank" rel="noopener"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&text=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&is_video=false&description=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spark Core [源码解析] MemoryPool&body=Check out this article: http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&name=Spark Core [源码解析] MemoryPool&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&t=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryMode"><span class="toc-number">1.</span> <span class="toc-text">MemoryMode</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryPool抽象类"><span class="toc-number">2.</span> <span class="toc-text">MemoryPool抽象类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#宏观关系"><span class="toc-number">3.</span> <span class="toc-text">宏观关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#StorageMemoryPool"><span class="toc-number">4.</span> <span class="toc-text">StorageMemoryPool</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#acquireMemory"><span class="toc-number">4.1.</span> <span class="toc-text">acquireMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseMemory"><span class="toc-number">4.2.</span> <span class="toc-text">releaseMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#freeSpaceToShrinkPool"><span class="toc-number">4.3.</span> <span class="toc-text">freeSpaceToShrinkPool</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ExecutionMemoryPool"><span class="toc-number">5.</span> <span class="toc-text">ExecutionMemoryPool</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#acquireMemory-1"><span class="toc-number">5.1.</span> <span class="toc-text">acquireMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseMemory-1"><span class="toc-number">5.2.</span> <span class="toc-text">releaseMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseAllMemoryForTask"><span class="toc-number">5.3.</span> <span class="toc-text">releaseAllMemoryForTask</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#重点小结"><span class="toc-number">6.</span> <span class="toc-text">重点小结</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Spark Core [源码解析] MemoryPool
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">SinGle's Cabin</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2020-05-16T06:24:09.000Z" itemprop="datePublished">2020-05-16</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <p><img src="/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/MemoryPool.png" alt="MemoryPool"></p>
+<h2 id="MemoryMode"><a href="#MemoryMode" class="headerlink" title="MemoryMode"></a>MemoryMode</h2><ul>
+<li>内存池实际上是对物理内存的逻辑规划</li>
+<li><strong>Spark</strong>用内存模式(<strong>MemoryMode</strong>)从逻辑上区分为堆内内存与堆外内存</li>
+<li><strong>MemoryMode</strong>为枚举类型，定义了堆内内存<strong>ON_HEAP</strong>与堆外内存<strong>OFF_HEAP</strong></li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Private</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> MemoryMode &#123;</span><br><span class="line">  ON_HEAP,</span><br><span class="line">  OFF_HEAP</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="MemoryPool抽象类"><a href="#MemoryPool抽象类" class="headerlink" title="MemoryPool抽象类"></a>MemoryPool抽象类</h2><p>内存池抽象类的基本方法与属性如下:</p>
+<table>
+<thead>
+<tr>
+<th>属性/方法</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>lock</strong></td>
+<td>接收lock作为参数，保证操作内存池的线程安全。</td>
+</tr>
+<tr>
+<td><strong>_poolSize</strong></td>
+<td>内存池的大小(bytes)。</td>
+</tr>
+<tr>
+<td><strong>poolSize</strong></td>
+<td>返回_poolSize内存池大小的方法。</td>
+</tr>
+<tr>
+<td><strong>memoryUsed</strong></td>
+<td>获取已经使用的内存大小(bytes)，此方法需要子类实现。</td>
+</tr>
+<tr>
+<td><strong>memoryFree</strong></td>
+<td>获取内存池中可用的内存大小(bytes)，即_poolSize与memoryUsed的差值。</td>
+</tr>
+<tr>
+<td><strong>incrementPoolSize</strong></td>
+<td>给内存池扩容，扩容大小为delta，delta必须为正。</td>
+</tr>
+<tr>
+<td><strong>decrementPoolSize</strong></td>
+<td>给内存池缩容，缩容大小为delta，delta必须为正，delta必须小于内存池总大小，缩小后剩余的内存池大小必须大于已经被使用的内存(即已经使用的内存不可以从内存池中移除)。</td>
+</tr>
+</tbody></table>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[memory] <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">MemoryPool</span>(<span class="params">lock: <span class="type">Object</span></span>) </span>&#123;</span><br><span class="line">  <span class="meta">@GuardedBy</span>(<span class="string">"lock"</span>)</span><br><span class="line">  <span class="keyword">private</span>[<span class="keyword">this</span>] <span class="keyword">var</span> _poolSize: <span class="type">Long</span> = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">final</span> <span class="function"><span class="keyword">def</span> <span class="title">poolSize</span></span>: <span class="type">Long</span> = lock.synchronized &#123;</span><br><span class="line">    _poolSize</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">final</span> <span class="function"><span class="keyword">def</span> <span class="title">memoryFree</span></span>: <span class="type">Long</span> = lock.synchronized &#123;</span><br><span class="line">    _poolSize - memoryUsed</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">final</span> <span class="function"><span class="keyword">def</span> <span class="title">incrementPoolSize</span></span>(delta: <span class="type">Long</span>): <span class="type">Unit</span> = lock.synchronized &#123;</span><br><span class="line">    require(delta &gt;= <span class="number">0</span>)</span><br><span class="line">    _poolSize += delta</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">final</span> <span class="function"><span class="keyword">def</span> <span class="title">decrementPoolSize</span></span>(delta: <span class="type">Long</span>): <span class="type">Unit</span> = lock.synchronized &#123;</span><br><span class="line">    require(delta &gt;= <span class="number">0</span>)</span><br><span class="line">    require(delta &lt;= _poolSize)</span><br><span class="line">    require(_poolSize - delta &gt;= memoryUsed)</span><br><span class="line">    _poolSize -= delta</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">memoryUsed</span></span>: <span class="type">Long</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="宏观关系"><a href="#宏观关系" class="headerlink" title="宏观关系"></a>宏观关系</h2><p><strong>MemoryPool</strong>抽象类有两种具体实现:</p>
+<ul>
+<li><strong>StorageMemoryPool</strong> 存储体系用到的内存池</li>
+<li><strong>ExecutionMemoryPool</strong> 计算引擎用到的内存池</li>
+</ul>
+<p>他们都受到<strong>MemoryManager</strong>的统一管理，而<strong>MemoryManager</strong>也有两种具体实现:</p>
+<ul>
+<li><strong>StaticMemoryManager</strong> 静态内存管理(存储与计算内存池大小固定)</li>
+<li><strong>UnifiedMemoryManager</strong> 统一内存管理(存储与计算内存池互相借用，动态分配)</li>
+</ul>
+<p><img src="/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/MemoryPool%E5%AE%8F%E8%A7%82%E5%85%B3%E7%B3%BB.png" alt="MemoryPool宏观关系"></p>
+<h2 id="StorageMemoryPool"><a href="#StorageMemoryPool" class="headerlink" title="StorageMemoryPool"></a>StorageMemoryPool</h2><table>
+<thead>
+<tr>
+<th>属性/方法</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>lock</strong></td>
+<td>继承了MemoryPool的lock属性，保证操作内存的线程安全。</td>
+</tr>
+<tr>
+<td>_<strong>poolSize</strong></td>
+<td>继承了MemoryPool的属性，StorageMemoryPool内存池的大小。</td>
+</tr>
+<tr>
+<td><strong>MemoryMode</strong></td>
+<td>内存模式，在逻辑上区分用于存储的内存是堆外内存offHeap还是堆内内存onHeap。offHeap内存为sun.misc.Unsafe的API分配的系统内存，onHeap内存为系统分配给JVM内存的一部分。</td>
+</tr>
+<tr>
+<td><strong>poolName</strong></td>
+<td>内存池名称，如果MemoryMode.ON_HEAP则名称为on-heap storage,如果是MemoryMode.OFF_HEAP,则名称为off-heap storage。</td>
+</tr>
+<tr>
+<td>_<strong>memoryUsed</strong></td>
+<td>已经使用的内存大小(bytes)</td>
+</tr>
+<tr>
+<td><strong>memoryUsed</strong></td>
+<td>实现MemoryPool的方法，返回_memoryUsed的值。</td>
+</tr>
+<tr>
+<td>_<strong>memoryStore</strong></td>
+<td>StorageMemoryPool所关联的MemoryStore。</td>
+</tr>
+<tr>
+<td><strong>memoryStore</strong></td>
+<td>返回_memoryStore属性引用的MemoryStore。</td>
+</tr>
+<tr>
+<td><strong>setMemoryStore</strong></td>
+<td>设置当前StorageMemoryPool所关联的MemoryStore，实际设置了_memoryStore属性。</td>
+</tr>
+<tr>
+<td><strong>releaseAllMemory</strong></td>
+<td>释放当前内存池的所有内存，即将_memoryUsed设置为0。</td>
+</tr>
+</tbody></table>
+<p><strong>以下为重点方法详解</strong></p>
+<h3 id="acquireMemory"><a href="#acquireMemory" class="headerlink" title="acquireMemory"></a>acquireMemory</h3><p>此方法用于给<strong>blockId</strong>对应的<strong>block</strong>，获取<strong>numBytes</strong>指定大小的内存。</p>
+<ul>
+<li>首先计算<strong>numBytes</strong>与<strong>memoryFree</strong>的差值，如果<strong>numBytesToFree</strong>&gt;0，说明空闲的内存空间不足，需要驱逐部分<strong>block</strong>占用的内存空间，然后调用重载的<strong>acquireMemory</strong>方法申请内存。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquireMemory</span></span>(blockId: <span class="type">BlockId</span>, numBytes: <span class="type">Long</span>): <span class="type">Boolean</span> = lock.synchronized &#123;</span><br><span class="line">  <span class="keyword">val</span> numBytesToFree = math.max(<span class="number">0</span>, numBytes - memoryFree)</span><br><span class="line">  acquireMemory(blockId, numBytes, numBytesToFree)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>重载的<strong>acquireMemory</strong>方法，用于为<strong>blockId</strong>对应的<strong>block</strong>获取该<strong>block</strong>所需(<strong>numBytesToAcquire</strong>)大小的内存。</li>
+<li>当<strong>StorageMemoryPool</strong>内存不足的时候，需要腾出其他<strong>block</strong>占用的内存给当前的<strong>block</strong>，腾出的大小由<strong>numBytesToFree</strong>决定(即不足的空间大小)。</li>
+</ul>
+<ol>
+<li>调用<strong>MemoryStore</strong>的<strong>evictBlocksToFreeSpace</strong>方法，腾出<strong>numBytesToFree</strong>属性指定大小的空间。</li>
+<li>当前<strong>StorageMemoryPool</strong>的空闲内存(<strong>memoryFree</strong>)是否充足。即<strong>numBytesToAcquire</strong> &lt;= <strong>memoryFree</strong></li>
+<li>如果内存充足，则将<strong>numBytesToAcquire</strong>增加到<strong>_memoryUsed</strong>属性上，即逻辑上获得了用于存储<strong>block</strong>的内存空间。</li>
+<li>返回<strong>enoughMemory</strong>布尔值，表示是否成功获得了<strong>block</strong>所需要的内存空间。 </li>
+</ol>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquireMemory</span></span>(</span><br><span class="line">    blockId: <span class="type">BlockId</span>,</span><br><span class="line">    numBytesToAcquire: <span class="type">Long</span>,</span><br><span class="line">    numBytesToFree: <span class="type">Long</span>): <span class="type">Boolean</span> = lock.synchronized &#123;</span><br><span class="line">  assert(numBytesToAcquire &gt;= <span class="number">0</span>)</span><br><span class="line">  assert(numBytesToFree &gt;= <span class="number">0</span>)</span><br><span class="line">  assert(memoryUsed &lt;= poolSize)</span><br><span class="line">  <span class="keyword">if</span> (numBytesToFree &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    memoryStore.evictBlocksToFreeSpace(<span class="type">Some</span>(blockId), numBytesToFree, memoryMode)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">val</span> enoughMemory = numBytesToAcquire &lt;= memoryFree</span><br><span class="line">  <span class="keyword">if</span> (enoughMemory) &#123;</span><br><span class="line">    _memoryUsed += numBytesToAcquire</span><br><span class="line">  &#125;</span><br><span class="line">  enoughMemory</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="releaseMemory"><a href="#releaseMemory" class="headerlink" title="releaseMemory"></a>releaseMemory</h3><ul>
+<li>释放指定大小的内存空间</li>
+</ul>
+<ol>
+<li>如果需要释放的内存空间大小大于已经被使用的内存大小，可以理解为释放所有被占用的内存，将<strong>_memoryUsed</strong>直接清零。</li>
+<li>否则，就在占用内存里减去释放的内存空间，即逻辑上释放了<strong>size</strong>大小的内存。</li>
+</ol>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseMemory</span></span>(size: <span class="type">Long</span>): <span class="type">Unit</span> = lock.synchronized &#123;</span><br><span class="line">  <span class="keyword">if</span> (size &gt; _memoryUsed) &#123;</span><br><span class="line">    logWarning(<span class="string">s"Attempted to release <span class="subst">$size</span> bytes of storage "</span> +</span><br><span class="line">      <span class="string">s"memory when we only have <span class="subst">$&#123;_memoryUsed&#125;</span> bytes"</span>)</span><br><span class="line">    _memoryUsed = <span class="number">0</span></span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    _memoryUsed -= size</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="freeSpaceToShrinkPool"><a href="#freeSpaceToShrinkPool" class="headerlink" title="freeSpaceToShrinkPool"></a>freeSpaceToShrinkPool</h3><ul>
+<li>缩小指定大小的内存池空间。</li>
+</ul>
+<ol>
+<li>对比<strong>spaceToFree</strong>和<strong>memoryFree</strong>的大小，如果<strong>spaceToFree</strong>小于<strong>memoryFree</strong>，直接返回<strong>spaceToFree</strong>即可。</li>
+<li>如果<strong>spaceToFree</strong>大于<strong>memoryFree</strong>，说明需要腾出占用内存的部分<strong>block</strong>，以补齐<strong>spaceToFree</strong>的大小，返回腾出的空间<strong>spaceFreedByEviction</strong>与<strong>MemoryFree</strong>的大小之和。</li>
+<li>由于驱逐了部分<strong>block</strong>的内存空间，所以<strong>_memoryUsed</strong>应该减少，但是这里没有做处理，原因是<strong>evictBlocksToFreeSpace</strong>的调动过程中，会调用<strong>blockEvictionHandler</strong>的<strong>dropFromMemory</strong>，而<strong>BlockManager</strong>的<strong>dropFromMemory</strong>方法会调用<strong>StorageMemoryPool</strong>的<strong>releaseMemory</strong>方法。</li>
+</ol>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">freeSpaceToShrinkPool</span></span>(spaceToFree: <span class="type">Long</span>): <span class="type">Long</span> = lock.synchronized &#123;</span><br><span class="line">  <span class="keyword">val</span> spaceFreedByReleasingUnusedMemory = math.min(spaceToFree, memoryFree) <span class="comment">//两者取最小值</span></span><br><span class="line">  <span class="keyword">val</span> remainingSpaceToFree = spaceToFree - spaceFreedByReleasingUnusedMemory</span><br><span class="line">  <span class="keyword">if</span> (remainingSpaceToFree &gt; <span class="number">0</span>) &#123;<span class="comment">// 大于0说明需要腾出空间</span></span><br><span class="line">    <span class="keyword">val</span> spaceFreedByEviction =</span><br><span class="line">      memoryStore.evictBlocksToFreeSpace(<span class="type">None</span>, remainingSpaceToFree, memoryMode)</span><br><span class="line">    spaceFreedByReleasingUnusedMemory + spaceFreedByEviction</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123; <span class="comment">// 否则直接返回spaceToFree的值即可</span></span><br><span class="line">    spaceFreedByReleasingUnusedMemory</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong><em>StorageMemoryPool对应的是blockId与block所需的内存大小，ExecutionMemoryPool对应的是TaskAttemptId与任务尝试所消耗的内存大小。</em></strong></p>
+<h2 id="ExecutionMemoryPool"><a href="#ExecutionMemoryPool" class="headerlink" title="ExecutionMemoryPool"></a>ExecutionMemoryPool</h2><ul>
+<li>继承于MemoryPool，是执行内存池的具体实现，对执行内存的逻辑规划。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>属性/方法</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>lock</strong></td>
+<td>继承于MemoryPool的锁，保证操作内存池的线程安全。</td>
+</tr>
+<tr>
+<td>_<strong>poolSize</strong></td>
+<td>执行内存池的大小。</td>
+</tr>
+<tr>
+<td><strong>memoryMode</strong></td>
+<td>内存模式，ON_HEAP/OFF_HEAP两种。</td>
+</tr>
+<tr>
+<td><strong>poolName</strong></td>
+<td>内存池名称，根据memoryMode取名，on_heap execution或off_heap execution</td>
+</tr>
+<tr>
+<td><strong>memoryForTask</strong></td>
+<td>任务尝试的身份标识taskAttemptId与所消费内存大小之间的映射表。</td>
+</tr>
+<tr>
+<td><strong>memoryUsed</strong></td>
+<td>获取已使用的内存大小(bytes)，实际上是所有TaskAttemptId所消费的内存大小之和，即memoryForTask这个Map中所有value的和。</td>
+</tr>
+<tr>
+<td><strong>getMemoryUsageForTask</strong></td>
+<td>获取任务尝试使用的内存大小，即memoryForTask中taskAttemptId对应的value值。</td>
+</tr>
+</tbody></table>
+<p><strong>以下为重点方法详解</strong></p>
+<h3 id="acquireMemory-1"><a href="#acquireMemory-1" class="headerlink" title="acquireMemory"></a>acquireMemory</h3><ul>
+<li>用于给<strong>taskAttemptId</strong>对应的任务尝试获取指定大小(<strong>numbytes</strong>)的内存。<br>申请内存的具体执行步骤如下:</li>
+</ul>
+<ol>
+<li><p>如果<strong>memoryForTask</strong>中未包含当前<strong>taskAttemptId</strong>，则将当前<strong>taskAttemptId</strong>加入到<strong>memoryForTask</strong>中，并记录其消费的内存为0。唤醒其他等待获取<strong>ExecutionMemoryPool</strong>的线程。</p>
+</li>
+<li><p>一直循环以下操作:<br>(1) 获取当前激活的Task总数。</p>
+<p>(2) 获取当前任务尝试所消费的内存大小。</p>
+<p>(3) 调用<strong>maybeGrowPool</strong>方法，回收<strong>StorageMemoryPool</strong>从<strong>ExecutionMemoryPool</strong>里借用的内存。</p>
+<p>(4) 调用<strong>computeMaxPoolSize</strong>方法，计算内存池的最大大小。</p>
+<p>(5) 计算每个任务尝试可以使用的最大内存大小。(<strong>maxMemoryPerTask</strong>)</p>
+<p>(6) 计算每个任务尝试可以使用的最小内存大小。(<strong>minMemoryPerTask</strong>)</p>
+<p>(7) 计算当前任务尝试真正可以申请获取的内存大小。(<strong>toGrant</strong>)</p>
+<p>(8) 如果<strong>toGrant</strong>小于任务尝试本来要申请的内存大小，并且当前任务尝试所消费的内存大小<strong>curMem</strong>与可以申请获取的内存大小<strong>toGrant</strong>之和小于<strong>minMemoryPerTask</strong>。会使得当前线程处于等待状态，这说明如果任务尝试要申请的内存得不到满足，甚至连每个任务需要的最小内存1/2N都无法满足，则需要等待其他线程的任务释放内存，当其他任务释放内存后，进入下一次<strong>loop</strong>，直到获取到满意的内存大小。</p>
+<p>(9) 如果<strong>toGrant</strong>大于任务尝试需要申请的内存，说明真正可以申请的内存大小超出了期望获取的内存大小，或者<strong>curMem</strong>和<strong>toGrant</strong>之和大于等于<strong>minMemoryPerTask</strong>，说明当前任务尝试得到了最基本的内存保证(1/2N)。直接在<strong>memoryForTask</strong>中给该任务尝试对应的消费内存增加<strong>toGrant</strong>内存大小，并返回<strong>toGrant</strong>退出循环。</p>
+</li>
+</ol>
+<p><strong>注意： maybeGrowPool是一个在MemoryManager的子类中定义的方法，用于计算存储内存池”占用”计算内存池的内存大小，返回存储内存池应该”回收”的内存大小。</strong></p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[memory] <span class="function"><span class="keyword">def</span> <span class="title">acquireMemory</span></span>(</span><br><span class="line">      numBytes: <span class="type">Long</span>,</span><br><span class="line">      taskAttemptId: <span class="type">Long</span>,</span><br><span class="line">      <span class="comment">// 在MemoryManager的子类中定义的方法，返回存储内存池应该归还的内存大小。</span></span><br><span class="line">      maybeGrowPool: <span class="type">Long</span> =&gt; <span class="type">Unit</span> = (additionalSpaceNeeded: <span class="type">Long</span>) =&gt; <span class="type">Unit</span>,</span><br><span class="line">      computeMaxPoolSize: () =&gt; <span class="type">Long</span> = () =&gt; poolSize): <span class="type">Long</span> = lock.synchronized &#123;</span><br><span class="line">    assert(numBytes &gt; <span class="number">0</span>, <span class="string">s"invalid number of bytes requested: <span class="subst">$numBytes</span>"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!memoryForTask.contains(taskAttemptId)) &#123;</span><br><span class="line">      memoryForTask(taskAttemptId) = <span class="number">0</span>L</span><br><span class="line">      lock.notifyAll()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">      <span class="keyword">val</span> numActiveTasks = memoryForTask.keys.size </span><br><span class="line">      <span class="keyword">val</span> curMem = memoryForTask(taskAttemptId) </span><br><span class="line"></span><br><span class="line">      maybeGrowPool(numBytes - memoryFree)</span><br><span class="line"></span><br><span class="line">      <span class="keyword">val</span> maxPoolSize = computeMaxPoolSize()</span><br><span class="line">      <span class="keyword">val</span> maxMemoryPerTask = maxPoolSize / numActiveTasks</span><br><span class="line">      <span class="keyword">val</span> minMemoryPerTask = poolSize / (<span class="number">2</span> * numActiveTasks)</span><br><span class="line"></span><br><span class="line">      <span class="keyword">val</span> maxToGrant = math.min(numBytes, math.max(<span class="number">0</span>, maxMemoryPerTask - curMem))</span><br><span class="line"></span><br><span class="line">      <span class="keyword">val</span> toGrant = math.min(maxToGrant, memoryFree)</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (toGrant &lt; numBytes &amp;&amp; curMem + toGrant &lt; minMemoryPerTask) &#123;</span><br><span class="line">        logInfo(<span class="string">s"TID <span class="subst">$taskAttemptId</span> waiting for at least 1/2N of <span class="subst">$poolName</span> pool to be free"</span>)</span><br><span class="line">        lock.wait()</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        memoryForTask(taskAttemptId) += toGrant</span><br><span class="line">        <span class="keyword">return</span> toGrant</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="number">0</span>L  </span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="releaseMemory-1"><a href="#releaseMemory-1" class="headerlink" title="releaseMemory"></a>releaseMemory</h3><ul>
+<li>用于给<strong>taskAttemptId</strong>对应的任务尝试释放指定大小(<strong>numbytes</strong>)的内存。</li>
+</ul>
+<ol>
+<li><p>获取<strong>taskAttemptId</strong>代表的任务尝试所消费的内存(<strong>curMem</strong>)。</p>
+</li>
+<li><p>如果<strong>curMem</strong> &lt; <strong>numBytes</strong>，即当前任务尝试消费的内存小于请求释放的内存，则真正需要释放的内存就是当前任务尝试消费的内存大小(<strong>memoryToFree=curMem</strong>)。否则，真正需要释放的内存就是请求释放的内存(<strong>memoryToFree=numBytes</strong>)。</p>
+</li>
+<li><p>如果<strong>memoryForTask</strong>里有当前任务尝试对应的<strong>taskAttemptId</strong>，将它对应消费的内存大小减去本次释放的内存大小(<strong>memoryToFree</strong>)。</p>
+</li>
+<li><p>如果减去<strong>memoryToFree</strong>大小的内存后，该<strong>taskAttemptId</strong>消费的内存小于等于0，则将其从<strong>memoryForTask</strong>中清除。</p>
+</li>
+<li><p>唤醒所有因为调用<strong>acquireMemory</strong>方法申请获得内存，却因为内存不足处于等待状态的线程。</p>
+</li>
+</ol>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseMemory</span></span>(numBytes: <span class="type">Long</span>, taskAttemptId: <span class="type">Long</span>): <span class="type">Unit</span> = lock.synchronized &#123;</span><br><span class="line">  <span class="keyword">val</span> curMem = memoryForTask.getOrElse(taskAttemptId, <span class="number">0</span>L)</span><br><span class="line">  <span class="keyword">var</span> memoryToFree = <span class="keyword">if</span> (curMem &lt; numBytes) &#123;</span><br><span class="line">    logWarning(</span><br><span class="line">      <span class="string">s"Internal error: release called on <span class="subst">$numBytes</span> bytes but task only has <span class="subst">$curMem</span> bytes "</span> +</span><br><span class="line">        <span class="string">s"of memory from the <span class="subst">$poolName</span> pool"</span>)</span><br><span class="line">    curMem</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    numBytes</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (memoryForTask.contains(taskAttemptId)) &#123;</span><br><span class="line">    memoryForTask(taskAttemptId) -= memoryToFree</span><br><span class="line">    <span class="keyword">if</span> (memoryForTask(taskAttemptId) &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">      memoryForTask.remove(taskAttemptId)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  lock.notifyAll()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="releaseAllMemoryForTask"><a href="#releaseAllMemoryForTask" class="headerlink" title="releaseAllMemoryForTask"></a>releaseAllMemoryForTask</h3><ul>
+<li>用于释放<strong>taskAttemptId</strong>对应的任务尝试所消费的所有内存。</li>
+</ul>
+<ol>
+<li>首先调用<strong>getMemoryUsageForTask</strong>获取该任务尝试消费的内存大小。</li>
+<li>调用<strong>releaseMemory</strong>方法释放内存。</li>
+<li>返回释放的内存大小。</li>
+</ol>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseAllMemoryForTask</span></span>(taskAttemptId: <span class="type">Long</span>): <span class="type">Long</span> = lock.synchronized &#123;</span><br><span class="line">  <span class="keyword">val</span> numBytesToFree = getMemoryUsageForTask(taskAttemptId)</span><br><span class="line">  releaseMemory(numBytesToFree, taskAttemptId)</span><br><span class="line">  numBytesToFree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="重点小结"><a href="#重点小结" class="headerlink" title="重点小结"></a>重点小结</h2><ol>
+<li><strong>StorageMemoryPool</strong>为<strong>blockId</strong>对应的<strong>block</strong>申请指定大小的内存，<strong>ExecutionMemoryPool</strong>为<strong>TaskAttemptId</strong>对应的任务尝试获取指定大小的内存。</li>
+<li><strong>freeSpaceToShrinkPool</strong>决定了是否需要驱逐<strong>Block</strong>以释放内存，实际调用<strong>memoryStore</strong>的<strong>evictBlocksToFreeSpace</strong>，而<strong>evictBlocksToFreeSpace</strong>将调用<strong>blockEvictionHandler</strong>的<strong>dropFromMemory</strong>方法对内存进行释放，实际操作的是<strong>BlockManager</strong>的<strong>dropFromMemory</strong>方法，最终通过<strong>remove</strong>方法回到<strong>MemoryStore</strong>里的<strong>releaseMemory</strong>实现内存释放。</li>
+<li><strong>ExecutionMemoryPool</strong>在内存不足时，会调用<strong>maybeGrowPool</strong>方法回收<strong>Storage</strong>占用的内存，如<strong>UnifiedMemoryManager</strong>子类实现的<strong>maybeGrowExecutionPool</strong>方法，内部调用<strong>freeSpaceToShrinkPool</strong>释放<strong>block</strong>占用的内存，并对存储以及计算内存池两者大小进行调整。</li>
+<li><strong>ExecutionMemoryPool</strong>采用死循环的方式为<strong>TaskAttempt</strong>申请内存，内存至少为: 执行内存池大小* 1/(2*任务尝试个数)，否则将继续等待，直到其他<strong>TaskAttempt</strong>释放内存。</li>
+</ol>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryMode"><span class="toc-number">1.</span> <span class="toc-text">MemoryMode</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryPool抽象类"><span class="toc-number">2.</span> <span class="toc-text">MemoryPool抽象类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#宏观关系"><span class="toc-number">3.</span> <span class="toc-text">宏观关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#StorageMemoryPool"><span class="toc-number">4.</span> <span class="toc-text">StorageMemoryPool</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#acquireMemory"><span class="toc-number">4.1.</span> <span class="toc-text">acquireMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseMemory"><span class="toc-number">4.2.</span> <span class="toc-text">releaseMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#freeSpaceToShrinkPool"><span class="toc-number">4.3.</span> <span class="toc-text">freeSpaceToShrinkPool</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ExecutionMemoryPool"><span class="toc-number">5.</span> <span class="toc-text">ExecutionMemoryPool</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#acquireMemory-1"><span class="toc-number">5.1.</span> <span class="toc-text">acquireMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseMemory-1"><span class="toc-number">5.2.</span> <span class="toc-text">releaseMemory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseAllMemoryForTask"><span class="toc-number">5.3.</span> <span class="toc-text">releaseAllMemoryForTask</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#重点小结"><span class="toc-number">6.</span> <span class="toc-text">重点小结</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/" target="_blank" rel="noopener"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&text=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&is_video=false&description=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spark Core [源码解析] MemoryPool&body=Check out this article: http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&title=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&name=Spark Core [源码解析] MemoryPool&description=" target="_blank" rel="noopener"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://news.ycombinator.com/submitlink?u=http://localhost:4000/2020/05/16/Spark-Core-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-MemoryPool/&t=Spark Core [源码解析] MemoryPool" target="_blank" rel="noopener"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2020
+    SinGle IP
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/projects_url">Projects</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+
+    <!-- jquery -->
+
+<script src="/lib/jquery/jquery.min.js"></script>
+
+
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+
+<!-- clipboard -->
+
+  
+<script src="/lib/clipboard/clipboard.min.js"></script>
+
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+</body>
+</html>
