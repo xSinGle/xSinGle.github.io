@@ -6,6 +6,8 @@ tags:
 
 ![MemoryManager](MemoryManager.png)
 
+<!-- more -->
+
 前文针对MemoryManager抽象类的解析已经在宏观上描述了整个Spark内存管理的模型，本文将分别探讨MemoryManager的两个子类，StaticMemoryManager和UnifiedMemoryManager。
 
 ## StaticMemoryManager

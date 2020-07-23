@@ -6,6 +6,8 @@ tags:
 
 ![MemoryPool](MemoryPool.png)
 
+<!-- more -->
+
 ## MemoryMode
 
 * 内存池实际上是对物理内存的逻辑规划

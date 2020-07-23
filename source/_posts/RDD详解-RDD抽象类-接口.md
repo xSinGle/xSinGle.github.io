@@ -5,6 +5,9 @@ tags:
 ---
 
 ![[RDD抽象类][接口]]([RDD抽象类][接口].png)
+
+<!-- more -->
+
 RDD抽象类内容较多，这里选择分类进行解析。首先是接口，RDD抽象类定义了4个接口，**compute**,**getPartitions**,**getDependencies**,**getPreferredLocations**，分别用于**计算RDD分区**，**获取RDD分区**，**获取RDD依赖**，**获取分区偏好位置**。除getPreferredLocations外，皆由子类进行实现。
 
 ## **compute**

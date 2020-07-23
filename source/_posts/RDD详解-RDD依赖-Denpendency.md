@@ -3,9 +3,12 @@ title: 'RDD详解[RDD依赖][Denpendency]'
 date: 2020-04-12 20:15:39
 tags:
 ---
-**"RDD之间的依赖关系 构建了由RDD所组成的DAG"**
 
 ![Dependency](Dependency.png)
+
+<!-- more -->
+
+**RDD之间的依赖关系，构建了由RDD所组成的DAG**
 
 ## **Dependency**
 Spark使用**Dependency**来表示RDD之间的依赖关系，它只定义了一个rdd方法 返回当前依赖的RDD。

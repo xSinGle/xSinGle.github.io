@@ -9,6 +9,8 @@ tags:
 1. RDD根据不同数据源的创建方式
 2. RDD被创建时的分区数量是如何定义的
 
+<!-- more -->
+
 ## 创建RDD
 
 首先根据官网的描述，Spark可以根据任何Hadoop支持的文件系统作为数据源对RDD进行创建，如本地文件系统、HDFS、HBase、S3、text file、SequenceFiles等等。这里根据笔者生产环境涉及的情况进行说明。

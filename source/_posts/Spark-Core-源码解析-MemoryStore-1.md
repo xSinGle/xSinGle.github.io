@@ -6,6 +6,8 @@ tags:
 
 ![MemoryStore](MemoryStore.png)
 
+<!-- more -->
+
 ## 概述
 
 由于内容较多，本文将重点讲解以下几点：

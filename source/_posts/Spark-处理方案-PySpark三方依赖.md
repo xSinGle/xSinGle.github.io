@@ -4,7 +4,9 @@ date: 2020-05-13 21:54:17
 tags:
 ---
 
-*本文讲解spark **client**模式和**cluster**模式的**第三方库依赖**解决方法，注意，在用的时候需要看清楚自己的集群是哪种方法部署spark(deploy-mode)。*
+**本文讲解spark **client**模式和**cluster**模式的**第三方库依赖**解决方法，注意，在用的时候需要看清楚自己的集群是哪种方法部署spark(deploy-mode)。**
+
+<!-- more -->
 
 ## cluster模式 
 

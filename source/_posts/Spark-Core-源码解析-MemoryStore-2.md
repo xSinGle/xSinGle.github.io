@@ -10,6 +10,8 @@ tags:
 * 本章将重点关注**putIterator**方法，该方法真正实现了将大型Block数据写入内存的操作，即为了防止一次性写入Block数据造成**OOM**而使用的逐渐展开Block数据的方法。
 * 根据序列化与反序列化的数据而定义的**putIteratorAsBytes**和**putIteratorAsValues**两个方法都将调用**putIterator**方法实现**Block**数据到内存的写入，并根据**putIterator**方法返回的结果类型返回对应的**PartiallySerializedBlock**和**PartiallyUnrolledIterator**，然后进行进一步的展开操作。
 
+<!-- more -->
+
 ## MemoryStore方法(Block数据的存储和读取)
 
 ### putIterator 

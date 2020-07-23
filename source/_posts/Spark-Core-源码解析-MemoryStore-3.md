@@ -14,6 +14,7 @@ tags:
 
 > 需要重点关注**evictBlocksToFreeSpace**方法中，**Block**被驱逐的具体条件，只有满足条件的**Block**才可以被**evict**。
 
+<!-- more -->
 
 ## getSize
 

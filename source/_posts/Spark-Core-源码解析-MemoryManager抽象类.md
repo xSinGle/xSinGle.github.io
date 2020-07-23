@@ -8,6 +8,7 @@ tags:
 
 > MemoryManager抽象类规定了内存如何在计算与存储之间进行分配。执行内存(ExecutionMemory)用于计算操作如shuffle,join,sort,aggregation等，而存储内存(StorageMemory)用于内部数据的缓存以及其在集群间的传播，每个JVM都存在一个MemoryManager。
 
+<!-- more -->
 
 从宏观上看待**memoryManager**管理的**4块内存池**如下:
 

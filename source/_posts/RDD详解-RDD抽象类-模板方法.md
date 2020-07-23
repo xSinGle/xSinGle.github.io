@@ -6,6 +6,8 @@ tags:
 
 ![[RDD抽象类][模板方法]]([RDD抽象类][模板方法].png)
 
+<!-- more -->
+
 **"RDD抽象类实现了一些模板方法，用于获取当前RDD的分区数组(partitions)，RDD中某个分区的偏好位置(preferredLocations)，以及当前RDD所依赖的序列(dependencies)"**
 
 ## **partitions**

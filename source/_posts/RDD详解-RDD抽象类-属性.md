@@ -4,7 +4,12 @@ date: 2020-04-13 23:53:16
 tags: [Spark,RDD] 
 ---
 ![[RDD抽象类][属性]]([RDD抽象类][属性].png)
-**"凡是有@transient修饰的 不会被序列化"**
+
+<!-- more -->
+
+对于RDD抽象类属性的简要描述。
+
+**PS: "凡是有@transient修饰的 不会被序列化"**
 ## **_sc**
 **指SparkContext**
 
