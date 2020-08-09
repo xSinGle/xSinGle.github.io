@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本章主要讲解Python线程间通信的实现  共享变量及其缺点 Queue的实际使用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Python]线程间通信-共享变量与Queue">
+<meta property="og:url" content="http://localhost:4000/2020/08/09/Python-%E7%BA%BF%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1-%E5%85%B1%E4%BA%AB%E5%8F%98%E9%87%8F%E4%B8%8EQueue/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本章主要讲解Python线程间通信的实现  共享变量及其缺点 Queue的实际使用">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-08-09T03:08:24.000Z">
+<meta property="article:modified_time" content="2020-08-09T03:11:55.985Z">
+<meta property="article:author" content="SinGle">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://localhost:4000/2020/08/09/Python-%E7%BA%BF%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1-%E5%85%B1%E4%BA%AB%E5%8F%98%E9%87%8F%E4%B8%8EQueue/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Python]线程间通信-共享变量与Queue | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#共享变量"><span class="nav-number">1.</span> <span class="nav-text">共享变量</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#共享变量示例"><span class="nav-number">1.1.</span> <span class="nav-text">共享变量示例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Queue"><span class="nav-number">2.</span> <span class="nav-text">Queue</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#简介"><span class="nav-number">2.1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#属性与方法"><span class="nav-number">2.2.</span> <span class="nav-text">属性与方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Queue实现示例"><span class="nav-number">2.3.</span> <span class="nav-text">Queue实现示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#task-done-与join"><span class="nav-number">2.4.</span> <span class="nav-text">task_done()与join()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#使用场景"><span class="nav-number">2.4.1.</span> <span class="nav-text">使用场景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用示例"><span class="nav-number">2.4.2.</span> <span class="nav-text">使用示例</span></a></li></ol></li></ol></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/08/09/Python-%E7%BA%BF%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1-%E5%85%B1%E4%BA%AB%E5%8F%98%E9%87%8F%E4%B8%8EQueue/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Python]线程间通信-共享变量与Queue
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-08-09 11:08:24 / Modified: 11:11:55" itemprop="dateCreated datePublished" datetime="2020-08-09T11:08:24+08:00">2020-08-09</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>本章主要讲解Python线程间通信的实现</strong></p>
+<ul>
+<li>共享变量及其缺点</li>
+<li>Queue的实际使用<a id="more"></a>
+
+</li>
+</ul>
+<h2 id="共享变量"><a href="#共享变量" class="headerlink" title="共享变量"></a>共享变量</h2><p>使用共享变量缺点:</p>
+<ul>
+<li>不安全: 共享变量同时被多个线程修改，不加锁的情况下，无法保证线程安全。</li>
+<li>不优雅: 凡是使用该变量的函数，都需要使用global进行共享。</li>
+</ul>
+<h3 id="共享变量示例"><a href="#共享变量示例" class="headerlink" title="共享变量示例"></a>共享变量示例</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="comment"># 全局变量 count</span></span><br><span class="line">count = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">plus</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 调用global方法 函数内部作用域也能操作变量 count</span></span><br><span class="line">    <span class="keyword">global</span> count</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1000000</span>):</span><br><span class="line">        count += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">minus</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 调用global方法 函数内部作用域也能操作变量 count</span></span><br><span class="line">    <span class="keyword">global</span> count</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1000000</span>):</span><br><span class="line">        count -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    thread_p = threading.Thread(target=plus)</span><br><span class="line">    thread_m = threading.Thread(target=minus)</span><br><span class="line">    thread_p.start()</span><br><span class="line">    thread_m.start()</span><br><span class="line">    <span class="comment"># 等待两个线程都执行完毕后才打印最后的count值</span></span><br><span class="line">    thread_p.join()</span><br><span class="line">    thread_m.join()</span><br><span class="line">    print(count)</span><br></pre></td></tr></table></figure>
+<p>共享变量: count<br>线程一: 负责 count+1<br>线程二: 负责 count-1<br>期望输出: 0<br><strong><u>实际输出: 几乎每次都不同</u></strong><br><strong><u>原因: cpu随机调度线程，每个线程执行的时间不同步，从而产生脏数据</u></strong></p>
+<h2 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h2><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><ul>
+<li>FIFO的数据结构，即先进先出。</li>
+<li>maxsize参数设置队列的容量上限。</li>
+<li>若maxsize&lt;=0，则队列容量视为无限。</li>
+</ul>
+<h3 id="属性与方法"><a href="#属性与方法" class="headerlink" title="属性与方法"></a>属性与方法</h3><table>
+<thead>
+<tr>
+<th>属性与方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>qsize()</td>
+<td>返回队列的大致大小，不可靠：qsize()&gt;0 不保证后续的get()不被阻塞，qsize()&lt;0不保证后续的put()不被阻塞</td>
+</tr>
+<tr>
+<td>empty()</td>
+<td>队列为空返回True，不为空返回False，不可靠：返回True不保证put()不被阻塞，返回False不保证get()不被阻塞</td>
+</tr>
+<tr>
+<td>full()</td>
+<td>队列是满的返回True，不是满的返回False，同理，不可靠</td>
+</tr>
+<tr>
+<td>put(item, block=True, timeout=None)</td>
+<td>将item放入队列，如果block为True，timeout为None，则在有必要时阻塞至有槽可用，如果timeout是正数，则最多阻塞timeout秒，如果timeout秒内没有插槽可用，抛出Full异常。反之(block=False)，如果没有插槽可用，直接引发Full异常(timeout被忽略)</td>
+</tr>
+<tr>
+<td>put_nowait(item)</td>
+<td>相当于put(item, False)，即不阻塞，放不进去直接抛异常</td>
+</tr>
+<tr>
+<td>get(block=True, timeout=None)</td>
+<td>从队列中移除并返回一个项目，若block=True，timeout=None，则在必要时阻塞至元素可得到，同put()类似，timeout正数，阻塞timeout秒直到元素可得，超时抛出Empty异常。反之(block=False)，若没有可得的元素，直接抛出Empty异常</td>
+</tr>
+<tr>
+<td>get_nowait()</td>
+<td>相当于get(item, False)，即不阻塞，取不到直接抛异常</td>
+</tr>
+<tr>
+<td>task_done()</td>
+<td>表明前面排队的任务已经被完成。每个get()被用于获取一个任务，后续调用task_done()通知队列，该任务的处理已完成。如果join()处于阻塞状态，只有在接收到所有的task_done()返回，才会释放。调用次数如果超过队列元素总数，会抛出ValueError。</td>
+</tr>
+<tr>
+<td>join()</td>
+<td>队列会一直阻塞，直到队列中所有元素被取走并处理完毕，才会释放，每添加一个元素到队列，未完成任务总数就会+1，每接收到一个task_done()信号，未完成任务总数就会-1，直到为0，join()就会释放。</td>
+</tr>
+</tbody></table>
+<h3 id="Queue实现示例"><a href="#Queue实现示例" class="headerlink" title="Queue实现示例"></a>Queue实现示例</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> threading</span><br><span class="line"><span class="keyword">import</span> queue</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生产者: 每0.5秒生产一条数据并插入到stream队列当中</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">producer</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">for</span> item <span class="keyword">in</span> range(<span class="number">1</span>, maxsize+<span class="number">1</span>):</span><br><span class="line">        <span class="comment"># 如果队列满了会阻塞2秒，超时后抛出异常</span></span><br><span class="line">        stream.put(item, block=<span class="literal">True</span>, timeout=<span class="literal">None</span>)</span><br><span class="line">        print(<span class="string">"Successfully added item &#123;&#125;"</span>.format(item))</span><br><span class="line">        time.sleep(<span class="number">0.5</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 消费者: 从stream队列中取数据</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">consumer</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># 如果队列为空会阻塞2秒，超时后抛出异常 可以主动捕获该异常</span></span><br><span class="line">            item = stream.get(block=<span class="literal">True</span>, timeout=<span class="number">2</span>)</span><br><span class="line">            print(<span class="string">"Successfully get item: &#123;&#125;"</span>.format(item))</span><br><span class="line">        <span class="keyword">except</span> queue.Empty:</span><br><span class="line">            <span class="comment"># timeout后，捕获到Empty异常，主动退出循环</span></span><br><span class="line">            print(<span class="string">"Empty: No more objects in queue, break."</span>)</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    <span class="comment"># 创建一个容量为5的队列</span></span><br><span class="line">    maxsize = <span class="number">5</span></span><br><span class="line">    stream = queue.Queue(maxsize)</span><br><span class="line">    thread_producer = threading.Thread(target=producer, args=(stream,))</span><br><span class="line">    thread_consumer = threading.Thread(target=consumer, args=(stream,))</span><br><span class="line">    thread_producer.start()</span><br><span class="line">    thread_consumer.start()</span><br></pre></td></tr></table></figure>
+
+<h3 id="task-done-与join"><a href="#task-done-与join" class="headerlink" title="task_done()与join()"></a>task_done()与join()</h3><h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><ul>
+<li>我们能够确认队列里的元素被全部取走了，但是无法得知他们的<u><strong>处理进度</strong></u></li>
+<li>故task_done()用来通知Queue被get走的元素<u><strong>已经被处理完毕</strong></u></li>
+<li>join()则负责使Queue<u><strong>一直阻塞</strong></u>，直到接收到所有被取走的元素处理线程返回task_done()</li>
+<li>所以task_done()与join()是<u><strong>成对使用</strong></u>的</li>
+</ul>
+<h4 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h4><ul>
+<li>这里请注意，如果将self.__que.task_done()注释掉，Queue将一直阻塞下去</li>
+<li>因为Queue没有接收到所有的task_done()返回，会认为队列中被取走的任务并未被完成，故不会释放</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> threading <span class="keyword">import</span> Thread</span><br><span class="line"><span class="keyword">from</span> queue <span class="keyword">import</span> Queue</span><br><span class="line"><span class="keyword">from</span> time <span class="keyword">import</span> sleep</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyThread</span><span class="params">(Thread)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, que)</span>:</span></span><br><span class="line">        super().__init__()</span><br><span class="line">        self.__que = que</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">run</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            <span class="comment"># 取任务之前，检查队列是否为空，是的话直接结束循环</span></span><br><span class="line">            <span class="keyword">if</span> self.__que.empty():</span><br><span class="line">                print(<span class="string">"No More elements in queue, break."</span>)</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="comment"># 每获取一次任务</span></span><br><span class="line">            item = self.__que.get()</span><br><span class="line">            print(<span class="string">"Successfully get item &#123;&#125;"</span>.format(item))</span><br><span class="line">            <span class="comment"># 处理完毕后，都调用task_done()通知queue任务已完成</span></span><br><span class="line">            self.__que.task_done()</span><br><span class="line">            sleep(<span class="number">1</span>)</span><br><span class="line">            print(<span class="string">"Finished processing item &#123;&#125;"</span>.format(item))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    <span class="comment"># 创建容量为10的队列</span></span><br><span class="line">    que = Queue(<span class="number">10</span>)</span><br><span class="line">    <span class="comment"># 填充任务</span></span><br><span class="line">    <span class="keyword">for</span> task <span class="keyword">in</span> range(<span class="number">1</span>, <span class="number">11</span>):</span><br><span class="line">        que.put(task)</span><br><span class="line">    <span class="comment"># 启用2个线程执行任务</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>, <span class="number">3</span>):</span><br><span class="line">        thread = MyThread(que)</span><br><span class="line">        thread.start()</span><br><span class="line">    <span class="comment"># 队列一直阻塞，直到接收到所有task_done()信号才会释放</span></span><br><span class="line">    que.join()</span><br><span class="line">    print(<span class="string">"All tasks have been finished!"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><strong>共享变量与Queue的解析就到这里，下篇主要讲解[Python] 线程同步 - Lock、RLock</strong></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"># Python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/09/Python-Lock%E4%B8%8ERLock/" rel="prev" title="[Python]Lock与RLock">
+      <i class="fa fa-chevron-left"></i> [Python]Lock与RLock
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/09/Python-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%BC%96%E7%A8%8B/" rel="next" title="[Python]多线程编程">
+      [Python]多线程编程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
