@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本文将阐述什么是链表，用Python实现链表的增删改查功能，以及使用链表实现栈和队列。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Python]链表LinkedList">
+<meta property="og:url" content="http://localhost:4000/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文将阐述什么是链表，用Python实现链表的增删改查功能，以及使用链表实现栈和队列。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86.png">
+<meta property="og:image" content="http://localhost:4000/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0%E9%98%9F%E5%88%97.png">
+<meta property="article:published_time" content="2020-10-06T02:51:52.000Z">
+<meta property="article:modified_time" content="2020-10-05T03:19:54.843Z">
+<meta property="article:author" content="SinGle">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86.png">
+
+<link rel="canonical" href="http://localhost:4000/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Python]链表LinkedList | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#链表简述"><span class="nav-number">1.</span> <span class="nav-text">链表简述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#链表的实现"><span class="nav-number">2.</span> <span class="nav-text">链表的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#链表的时间复杂度"><span class="nav-number">3.</span> <span class="nav-text">链表的时间复杂度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#链表实现栈"><span class="nav-number">4.</span> <span class="nav-text">链表实现栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#链表实现队列"><span class="nav-number">5.</span> <span class="nav-text">链表实现队列</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Python]链表LinkedList
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-10-06 10:51:52" itemprop="dateCreated datePublished" datetime="2020-10-06T10:51:52+08:00">2020-10-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-10-05 11:19:54" itemprop="dateModified" datetime="2020-10-05T11:19:54+08:00">2020-10-05</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文将阐述什么是链表，用Python实现链表的增删改查功能，以及使用链表实现栈和队列。</p>
+<a id="more"></a>
+
+<h2 id="链表简述"><a href="#链表简述" class="headerlink" title="链表简述"></a>链表简述</h2><ol>
+<li>链表无需像传统数组一样需要预先知道数据大小，可以充分利用内存空间。(需要多少，插入多少，传统数组需要预先划分一块连续的内存空间)。</li>
+<li>链表无法实现随机读取(使用下标直接读取数据)，获取具体位置的元素要通过遍历实现。</li>
+<li>链表是最基础的动态数据结构，存在单向链表，双向链表等多种实现。</li>
+</ol>
+<h2 id="链表的实现"><a href="#链表的实现" class="headerlink" title="链表的实现"></a>链表的实现</h2><ul>
+<li>向链表中添加元素。</li>
+<li>找到需要添加元素位置所在的节点的前一个节点(prev)。</li>
+<li>将新添加的节点的next指向prev原来的next，new_node.next = prev.next</li>
+<li>将前一个节点的next指向新添加的节点。prev.next = new_node</li>
+<li>注意next调整的顺序，如果顺序反过来，new_node.next将指向自己本身。</li>
+</ul>
+<p><img src="/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86.png" alt="链表实现原理"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, e, next)</span>:</span></span><br><span class="line">        self.e = e</span><br><span class="line">        self.next = next</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LinkedList</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 初始化的时候只有一个虚拟的头结点 没有任何数据</span></span><br><span class="line">        self.__head = Node(<span class="literal">None</span>, <span class="literal">None</span>)</span><br><span class="line">        self.__size = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 获取链表长度</span></span><br><span class="line">        <span class="keyword">return</span> self.__size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 是否为空</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span> <span class="keyword">if</span> self.__size == <span class="number">0</span> <span class="keyword">else</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span><span class="params">(self, index, e)</span>:</span></span><br><span class="line">        <span class="comment"># 向链表中任意位置添加元素</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> Exception(<span class="string">"Add element failed. Illegal index."</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 最开始的节点就是虚拟头节点</span></span><br><span class="line">        prev = self.__head</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(index - <span class="number">1</span>):</span><br><span class="line">            prev = prev.next</span><br><span class="line">        <span class="string">"""</span></span><br><span class="line"><span class="string">        new_node = Node(e, None)</span></span><br><span class="line"><span class="string">        # 新节点的next指向前一个节点的next</span></span><br><span class="line"><span class="string">        new_node.next = prev.next</span></span><br><span class="line"><span class="string">        # 前一个节点的next指向新节点</span></span><br><span class="line"><span class="string">        prev.next = new_node</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 优化写法 将新节点的next直接设置为前一个节点的next</span></span><br><span class="line">        prev.next = Node(e, prev.next)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 记得维护size变量</span></span><br><span class="line">        self.__size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add_first</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="comment"># 向链表头添加一个元素</span></span><br><span class="line">        self.add(<span class="number">0</span>, e)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add_last</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="comment"># 向列表尾添加一个元素</span></span><br><span class="line">        cur = self.__head</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size):</span><br><span class="line">            cur = cur.next</span><br><span class="line"></span><br><span class="line">        cur.next = Node(e, <span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line">        self.__size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 重新定义魔法函数输出链表内容</span></span><br><span class="line">        e_ls = []</span><br><span class="line">        cur = self.__head</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size):</span><br><span class="line">            cur = cur.next</span><br><span class="line">            e_ls.append(str(cur.e))</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"--&gt;"</span>.join(e_ls)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">getter</span><span class="params">(self, index)</span>:</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt;= self.__size:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">'Get failed. Illegal index.'</span>)</span><br><span class="line">        curr = self.__head.next</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(index):</span><br><span class="line">            curr = curr.next</span><br><span class="line">        <span class="keyword">return</span> curr.e</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_first</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.getter(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_last</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.getter(self.__size - <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">update</span><span class="params">(self, index, e)</span>:</span></span><br><span class="line">        <span class="comment"># 更新具体位置的元素值</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> Exception(<span class="string">"Add element failed. Illegal index."</span>)</span><br><span class="line"></span><br><span class="line">        cur = self.getter(index)</span><br><span class="line">        cur.e = e</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span><span class="params">(self, index)</span>:</span></span><br><span class="line">        <span class="comment"># 删除具体位置的元素</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> Exception(<span class="string">"Add element failed. Illegal index."</span>)</span><br><span class="line"></span><br><span class="line">        prev = self.__head</span><br><span class="line">        <span class="comment"># 需要找到删除元素的前一个元素</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(index <span class="number">-1</span>):</span><br><span class="line">            prev = prev.next</span><br><span class="line">        <span class="comment"># 让前一个元素的next直接跳过删除的节点 指向下一个节点的next即可</span></span><br><span class="line">        prev.next = prev.next.next</span><br><span class="line"></span><br><span class="line">        self.__size -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove_first</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 删除头部元素</span></span><br><span class="line">        self.remove(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove_last</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 删除尾部元素</span></span><br><span class="line">        self.remove(self.__size)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    <span class="comment"># 实例化链表</span></span><br><span class="line">    ll = LinkedList()</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 向链表头部添加元素</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">5</span>):</span><br><span class="line">        ll.add_first(str(i))</span><br><span class="line">        print(ll)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 向具体位置添加元素</span></span><br><span class="line">    ll.add(<span class="number">3</span>, <span class="string">"999"</span>)</span><br><span class="line">    print(ll)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 查询具体位置的元素值</span></span><br><span class="line">    node = ll.get(<span class="number">3</span>)</span><br><span class="line">    print(node.e)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 更新具体位置的元素值</span></span><br><span class="line">    ll.update(<span class="number">3</span>, <span class="string">"xiaoxixi"</span>)</span><br><span class="line">    print(ll)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除具体位置的元素</span></span><br><span class="line">    ll.remove(<span class="number">3</span>)</span><br><span class="line">    print(ll)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除头部元素</span></span><br><span class="line">    ll.remove_first()</span><br><span class="line">    print(ll)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除尾部元素</span></span><br><span class="line">    ll.remove_last()</span><br><span class="line">    print(ll)</span><br></pre></td></tr></table></figure>
+
+<h2 id="链表的时间复杂度"><a href="#链表的时间复杂度" class="headerlink" title="链表的时间复杂度"></a>链表的时间复杂度</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>时间复杂度</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>add_last(e)</td>
+<td>O(n)</td>
+<td>需要遍历到添加节点的位置，将next指向新的节点。</td>
+</tr>
+<tr>
+<td>add_first(e)</td>
+<td>O(1)</td>
+<td>直接操作虚拟头结点。</td>
+</tr>
+<tr>
+<td>add(index, e)</td>
+<td>O(n/2) = O(n)</td>
+<td>均摊下视为O(n)，需要遍历。</td>
+</tr>
+<tr>
+<td>remove_last(e)</td>
+<td>O(n)</td>
+<td>需要遍历到删除节点的前一个位置，将其跳过删除的节点。</td>
+</tr>
+<tr>
+<td>remove_first(e)</td>
+<td>O(1)</td>
+<td>直接操作虚拟头结点。</td>
+</tr>
+<tr>
+<td>remove(index, e)</td>
+<td>O(n/2) = O(n)</td>
+<td>与add类同。</td>
+</tr>
+<tr>
+<td>set(index, e)</td>
+<td>O(n)</td>
+<td>遍历链表直到找到需要修改的节点进行赋值。</td>
+</tr>
+<tr>
+<td>get(index)</td>
+<td>O(n)</td>
+<td>遍历。</td>
+</tr>
+<tr>
+<td>contains()</td>
+<td>O(n)</td>
+<td>遍历。</td>
+</tr>
+</tbody></table>
+<h2 id="链表实现栈"><a href="#链表实现栈" class="headerlink" title="链表实现栈"></a>链表实现栈</h2><p>链表实现的栈与数组实现的栈，两者之间的时间复杂度数量级相差不大，可以视为一致的，不像ArrayQueue和LoopQueue这样能够达到百倍数量级的差异。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LinkedListStack</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 底层由链表实现，没有容积概念。</span></span><br><span class="line">        self.__list = LinkedList()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__list.is_empty()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__list.get_size()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""入栈"""</span></span><br><span class="line">        self.__list.add_first(e)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""出栈"""</span></span><br><span class="line">        <span class="keyword">if</span> self.is_empty():</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Can not pop from an empty stack."</span>)</span><br><span class="line">        <span class="keyword">return</span> self.__list.remove_first()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">peek</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""查看栈顶元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__list.get_first()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">"LinkedListStack: &#123;&#125; Top: &#123;&#125;"</span>.format(self.__list, self.peek())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    ll_stack = LinkedListStack()</span><br><span class="line">    <span class="keyword">for</span> item <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        ll_stack.push(item)</span><br><span class="line">        print(ll_stack)</span><br></pre></td></tr></table></figure>
+
+<h2 id="链表实现队列"><a href="#链表实现队列" class="headerlink" title="链表实现队列"></a>链表实现队列</h2><p><img src="/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/%E9%93%BE%E8%A1%A8%E5%AE%9E%E7%8E%B0%E9%98%9F%E5%88%97.png" alt="链表实现队列"></p>
+<ul>
+<li>在尾部添加节点，按照原来的实现，需要遍历到节点的位置，为了时间复杂度实现O(1)，新增tail尾指针，这样添加节点只需要将tail.next指向新节点即可。</li>
+<li>由于tail添加节点方便，但是删除节点依旧需要遍历到前一个节点的位置，所以选择tail端作为入队口，head端作为出队口，即尾进头出。</li>
+<li>队列只需要处理首位情况，所以不需要再使用dummyhead虚拟头结点来统一在链表中间插入节点与在链表头尾插入节点的两种情况。</li>
+<li>当队列为空或者只有一个节点的时候，head=tail，两者同时指向同一个节点。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LinkedListQueue</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">_Node</span>:</span></span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, e=None, next=None)</span>:</span></span><br><span class="line">            self.e = e</span><br><span class="line">            self.next = next</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">            <span class="keyword">return</span> str(self.e)</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">            <span class="keyword">return</span> self.__str__()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self._head = <span class="literal">None</span></span><br><span class="line">        self._tail = <span class="literal">None</span></span><br><span class="line">        self._size = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self._size == <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">enqueue</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""入队"""</span></span><br><span class="line">        <span class="comment"># tail为None说明队列为空，此时直接将head和tail都指向新Node即可。</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self._tail:</span><br><span class="line">            self._tail = self._Node(e)</span><br><span class="line">            self._head = self._tail</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="comment"># 队列不为空，此时将tail.next指向新的节点，同时原tail改为指向新的节点。</span></span><br><span class="line">            self._tail.next = self._Node(e)</span><br><span class="line">            self._tail = self._tail.next</span><br><span class="line"></span><br><span class="line">        self._size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">dequeue</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""出队"""</span></span><br><span class="line">        <span class="keyword">if</span> self.is_empty():</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Can not dequeue from an empty queue."</span>)</span><br><span class="line">        ret_node = self._head</span><br><span class="line">        self._head = self._head.next</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 出队后，该节点的next设置为None，脱离链表。</span></span><br><span class="line">        ret_node.next = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 特殊情况，如果队列中只有一个元素，出队后head和tail都为空。</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self._head:</span><br><span class="line">            self._tail = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        self._size -= <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> ret_node.e</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_front</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""查看队首元素"""</span></span><br><span class="line">        <span class="keyword">if</span> self.is_empty():</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Queue is empty."</span>)</span><br><span class="line">        <span class="keyword">return</span> self._head.e</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        cur = self._head</span><br><span class="line">        data = []</span><br><span class="line">        <span class="keyword">while</span> cur:</span><br><span class="line">            data.append(str(cur.e))</span><br><span class="line">            cur = cur.next</span><br><span class="line">        <span class="comment"># 对于内部实现来说，链表尾部入队，链表头部出队。</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">"LinkedListQueue: [Head] &#123;&#125; [Tail]"</span>.format(<span class="string">"&lt;-&gt;"</span>.join(data))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__str__()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    ll_q = LinkedListQueue()</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        ll_q.enqueue(i)</span><br><span class="line">        print(ll_q)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        ll_q.dequeue()</span><br><span class="line">        print(ll_q)</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"># Python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/" rel="next" title="[Python]队列Queue">
+      [Python]队列Queue <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本文简要阐述了栈的基本概念以及应用，并通过Python实现栈的数据结构。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Python]栈Stack">
+<meta property="og:url" content="http://localhost:4000/2020/10/05/Python-%E6%A0%88Stack/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文简要阐述了栈的基本概念以及应用，并通过Python实现栈的数据结构。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/10/05/Python-%E6%A0%88Stack/Stack%E5%AE%9E%E7%8E%B0%E6%92%A4%E9%94%80%E5%8A%A8%E4%BD%9C.png">
+<meta property="og:image" content="http://localhost:4000/2020/10/05/Python-%E6%A0%88Stack/Stack%E6%89%A7%E8%A1%8C%E5%8E%9F%E7%90%86.png">
+<meta property="article:published_time" content="2020-10-05T03:04:37.000Z">
+<meta property="article:modified_time" content="2020-10-05T03:18:57.541Z">
+<meta property="article:author" content="SinGle">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/10/05/Python-%E6%A0%88Stack/Stack%E5%AE%9E%E7%8E%B0%E6%92%A4%E9%94%80%E5%8A%A8%E4%BD%9C.png">
+
+<link rel="canonical" href="http://localhost:4000/2020/10/05/Python-%E6%A0%88Stack/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Python]栈Stack | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#栈的简述"><span class="nav-number">1.</span> <span class="nav-text">栈的简述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈的应用"><span class="nav-number">2.</span> <span class="nav-text">栈的应用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#IDE等编辑器实现撤销操作？"><span class="nav-number">2.1.</span> <span class="nav-text">IDE等编辑器实现撤销操作？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#系统如何暂停当前函数的执行，转而实现子函数的调用？"><span class="nav-number">2.2.</span> <span class="nav-text">系统如何暂停当前函数的执行，转而实现子函数的调用？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈的实现"><span class="nav-number">3.</span> <span class="nav-text">栈的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用栈实现括号匹配-leetcode题目"><span class="nav-number">4.</span> <span class="nav-text">使用栈实现括号匹配(leetcode题目)</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/05/Python-%E6%A0%88Stack/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Python]栈Stack
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-10-05 11:04:37 / Modified: 11:18:57" itemprop="dateCreated datePublished" datetime="2020-10-05T11:04:37+08:00">2020-10-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文简要阐述了栈的基本概念以及应用，并通过Python实现栈的数据结构。</p>
+<a id="more"></a>
+
+<h2 id="栈的简述"><a href="#栈的简述" class="headerlink" title="栈的简述"></a>栈的简述</h2><ul>
+<li>栈是一种线性结构。相比数组，栈对应的操作是数组的子集。</li>
+<li>只能从一端添加元素，也只能从一端取出元素，这一端称为栈顶。</li>
+<li>栈是一种后进先出的数据结构LIFO。</li>
+</ul>
+<h2 id="栈的应用"><a href="#栈的应用" class="headerlink" title="栈的应用"></a>栈的应用</h2><h3 id="IDE等编辑器实现撤销操作？"><a href="#IDE等编辑器实现撤销操作？" class="headerlink" title="IDE等编辑器实现撤销操作？"></a>IDE等编辑器实现撤销操作？</h3><p>编辑器存在一个称为Undo的栈，用于记录用户每一次的操作，每次编辑的内容都将入栈记录，而撤销动作(command+x)将取出栈顶的元素，即上一次的操作，将其删除从而回复到操作之前的状态。</p>
+<p><img src="/2020/10/05/Python-%E6%A0%88Stack/Stack%E5%AE%9E%E7%8E%B0%E6%92%A4%E9%94%80%E5%8A%A8%E4%BD%9C.png" alt="Stack实现撤销动作"></p>
+<h3 id="系统如何暂停当前函数的执行，转而实现子函数的调用？"><a href="#系统如何暂停当前函数的执行，转而实现子函数的调用？" class="headerlink" title="系统如何暂停当前函数的执行，转而实现子函数的调用？"></a>系统如何暂停当前函数的执行，转而实现子函数的调用？</h3><p>如A函数中调用子函数B，B函数中又调用子函数C。</p>
+<ul>
+<li>暂停A函数时，将A函数以及暂停位置压入系统栈记录，然后执行B函数。</li>
+<li>当B函数执行到要调用子函数C位置，在暂停B函数时，将B函数以及暂停位置压入系统栈记录，继续执行C函数。</li>
+<li>当C函数执行完毕后，系统将查看系统栈，此时栈顶是B函数暂停的位置，将其出栈，继续执行B函数。</li>
+<li>当B函数执行完毕后，系统将查看系统栈，此时栈顶是A函数暂停的位置，将其出栈，继续执行A函数。</li>
+<li>最后栈为空，所有函数执行完毕。</li>
+</ul>
+<p><img src="/2020/10/05/Python-%E6%A0%88Stack/Stack%E6%89%A7%E8%A1%8C%E5%8E%9F%E7%90%86.png" alt="Stack执行原理"></p>
+<h2 id="栈的实现"><a href="#栈的实现" class="headerlink" title="栈的实现"></a>栈的实现</h2><p>通过动态数组来实现栈，基础的数据结构沿用动态数组。</p>
+<ul>
+<li>核心方法就是push,pop,peek。分别为入栈，出栈，查询栈顶元素。</li>
+<li>其余方法如get_size查询当前栈的大小(元素个数)，is_empty是否为空，以及定义魔法函数输出内容并指明栈顶在某端。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ArrayStack</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    通过动态数组实现栈</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, capacity=<span class="number">0</span>)</span>:</span></span><br><span class="line">        self.__arr = Array(capacity=capacity)</span><br><span class="line">        self.__size = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取栈的大小"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""是否为空"""</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span> <span class="keyword">if</span> self.__size == <span class="number">0</span> <span class="keyword">else</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">push</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""入栈"""</span></span><br><span class="line">        self.__arr.add_first(e)</span><br><span class="line">        self.__size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""出栈"""</span></span><br><span class="line">        ret = self.__arr.remove_first()</span><br><span class="line">        self.__size -= <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> ret</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">peek</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""查询栈顶元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__arr.get_first()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_capacity</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""动态数组构建的Stack特有方法，获取其容量"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__arr.get_capacity()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""指明栈顶位置[top]"""</span></span><br><span class="line">        stack = [str(self.__arr.get(i)) <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__arr.get_size())]</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"ArrayStack: [top] &#123;&#125;"</span>.format(<span class="string">'--&gt;'</span>.join(stack))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__str__()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    array_stack = ArrayStack()</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        array_stack.push(i)</span><br><span class="line">        print(array_stack)</span><br><span class="line"></span><br><span class="line">    print(array_stack.pop())</span><br><span class="line">    print(array_stack.pop())</span><br><span class="line">    print(array_stack.pop())</span><br><span class="line"></span><br><span class="line">    print(array_stack)</span><br><span class="line">    print(array_stack.peek())</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用栈实现括号匹配-leetcode题目"><a href="#使用栈实现括号匹配-leetcode题目" class="headerlink" title="使用栈实现括号匹配(leetcode题目)"></a>使用栈实现括号匹配(leetcode题目)</h2><p>核心思路：</p>
+<ul>
+<li>遍历所有的字符串，只要是左括号，推入栈，如果是右括号，检查是否能与栈顶括号匹配，不行就是错误。</li>
+<li>需要特别注意最终栈必须为空，否则就是不完全匹配。</li>
+<li>也要注意根本不存在左括号，也就是只有右括号时，取值会造成的数组越界问题。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">isValid</span><span class="params">(self, s: str)</span> -&gt; bool:</span></span><br><span class="line">        stack = []</span><br><span class="line">        <span class="keyword">for</span> item <span class="keyword">in</span> s:</span><br><span class="line">            <span class="keyword">if</span> item <span class="keyword">in</span> (<span class="string">"("</span>, <span class="string">"["</span>, <span class="string">"&#123;"</span>):</span><br><span class="line">                stack.append(item)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">if</span> len(stack) == <span class="number">0</span>:</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">                <span class="keyword">if</span> item == <span class="string">")"</span> <span class="keyword">and</span> stack.pop() != <span class="string">"("</span>:</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">                <span class="keyword">if</span> item == <span class="string">"]"</span> <span class="keyword">and</span> stack.pop() != <span class="string">"["</span>:</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">                <span class="keyword">if</span> item == <span class="string">"&#125;"</span> <span class="keyword">and</span> stack.pop() != <span class="string">"&#123;"</span>:</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="keyword">return</span> len(stack) == <span class="number">0</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    s = Solution()</span><br><span class="line">    print(s.isValid(<span class="string">"[([]])"</span>))</span><br><span class="line">    print(s.isValid(<span class="string">"]"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，栈的实现实际上是数组的一个子集，根据后进先出的特点对数组的部分功能进行改造即可实现栈的逻辑。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"># Python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/" rel="prev" title="[Python]队列Queue">
+      <i class="fa fa-chevron-left"></i> [Python]队列Queue
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/05/Python-%E5%8A%A8%E6%80%81%E6%95%B0%E7%BB%84Array/" rel="next" title="[Python]动态数组Array">
+      [Python]动态数组Array <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

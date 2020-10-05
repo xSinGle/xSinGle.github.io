@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本文简要阐述了Python如何实现动态数组，以及动态数组的一些特性。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Python]动态数组Array">
+<meta property="og:url" content="http://localhost:4000/2020/10/05/Python-%E5%8A%A8%E6%80%81%E6%95%B0%E7%BB%84Array/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文简要阐述了Python如何实现动态数组，以及动态数组的一些特性。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-10-05T03:02:17.000Z">
+<meta property="article:modified_time" content="2020-10-05T03:18:40.954Z">
+<meta property="article:author" content="SinGle">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://localhost:4000/2020/10/05/Python-%E5%8A%A8%E6%80%81%E6%95%B0%E7%BB%84Array/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Python]动态数组Array | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#动态数组简述"><span class="nav-number">1.</span> <span class="nav-text">动态数组简述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Python-实现动态数组"><span class="nav-number">2.</span> <span class="nav-text">Python 实现动态数组</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#动态数组的时间复杂度"><span class="nav-number">3.</span> <span class="nav-text">动态数组的时间复杂度</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/05/Python-%E5%8A%A8%E6%80%81%E6%95%B0%E7%BB%84Array/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Python]动态数组Array
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-10-05 11:02:17 / Modified: 11:18:40" itemprop="dateCreated datePublished" datetime="2020-10-05T11:02:17+08:00">2020-10-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文简要阐述了Python如何实现动态数组，以及动态数组的一些特性。</p>
+<a id="more"></a>
+
+<h2 id="动态数组简述"><a href="#动态数组简述" class="headerlink" title="动态数组简述"></a>动态数组简述</h2><ul>
+<li>三个核心概念，data,size,capacity。</li>
+<li>data是动态数组本身，包含所有数据。</li>
+<li>size表示当前数组包含的元素个数，图示里size永远指向数组末尾元素的下一个位置(因为index是从0开始计算的)。</li>
+<li>capacity为数组的总容量大小，每当容量不足时内部进行自动扩容，本案例默认扩容2倍。</li>
+</ul>
+<h2 id="Python-实现动态数组"><a href="#Python-实现动态数组" class="headerlink" title="Python 实现动态数组"></a>Python 实现动态数组</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Array</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, arr=None, capacity=<span class="number">10</span>)</span>:</span></span><br><span class="line">        <span class="keyword">if</span> isinstance(arr, list):</span><br><span class="line">            self.__data = arr</span><br><span class="line">            self.__size = len(arr)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        self.__data = [<span class="literal">None</span>] * capacity</span><br><span class="line">        self.__size = <span class="number">0</span>  <span class="comment"># 注意这里是当前数组中的元素个数，并不是数组总容量大小</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取当前大小"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_capacity</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取容量"""</span></span><br><span class="line">        <span class="keyword">return</span> len(self.__data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""是否为空"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__size == <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span><span class="params">(self, index, e)</span>:</span></span><br><span class="line">        <span class="string">"""向数组中任意位置添加元素"""</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Add failed.Illegal Index."</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 检测容量是否满了，满了则优先扩容</span></span><br><span class="line">        <span class="keyword">if</span> self.__size == len(self.__data):</span><br><span class="line">            <span class="comment"># 如果数组为空，先增加一个空位，往后则倍增</span></span><br><span class="line">            <span class="keyword">if</span> self.__size == <span class="number">0</span>:</span><br><span class="line">                self._resize(<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                self._resize(<span class="number">2</span> * len(self.__data))</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 数组中元素右移，直到index走到当前需要插入的位置，赋值即可</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size - <span class="number">1</span>, index - <span class="number">1</span>, <span class="number">-1</span>):</span><br><span class="line">            self.__data[i+<span class="number">1</span>] = self.__data[i]</span><br><span class="line">        self.__data[index] = e</span><br><span class="line">        self.__size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add_first</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""向头部添加元素"""</span></span><br><span class="line">        self.add(<span class="number">0</span>, e)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add_last</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""向尾部添加元素"""</span></span><br><span class="line">        self.add(self.__size, e)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_resize</span><span class="params">(self, new_capacity)</span>:</span></span><br><span class="line">        <span class="string">"""数组扩容"""</span></span><br><span class="line">        new_data = [<span class="literal">None</span>] * new_capacity</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size):</span><br><span class="line">            new_data[i] = self.__data[i]</span><br><span class="line">        self.__data = new_data</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get</span><span class="params">(self, index)</span>:</span></span><br><span class="line">        <span class="string">"""获取指定位置的元素"""</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Add failed.Illegal Index."</span>)</span><br><span class="line">        <span class="keyword">return</span> self.__data[index]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_first</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取头部元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__data[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_last</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取尾部元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__data[self.__size - <span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove</span><span class="params">(self, index)</span>:</span></span><br><span class="line">        <span class="string">"""删除指定位置元素"""</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Remove failed.Illegal Index."</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> self.__size == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Remove failed.Can not remove from an empty list."</span>)</span><br><span class="line"></span><br><span class="line">        ret = self.__data[index]</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(index + <span class="number">1</span>, self.__size):</span><br><span class="line">            self.__data[i - <span class="number">1</span>] = self.__data[i]</span><br><span class="line"></span><br><span class="line">        self.__size -= <span class="number">1</span></span><br><span class="line">        <span class="comment"># 如果len(self.__data)为1，除以二就会是0，不合理。</span></span><br><span class="line">        <span class="keyword">if</span> self.__size == len(self.__data) // <span class="number">4</span> <span class="keyword">and</span> len(self.__data) // <span class="number">2</span> != <span class="number">0</span>:</span><br><span class="line">           self._resize(len(self.__data) // <span class="number">2</span>)</span><br><span class="line">        <span class="keyword">return</span> ret</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove_first</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""删除头部元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.remove(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">remove_last</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""删除尾部元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.remove(self.__size - <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">contains</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size):</span><br><span class="line">            <span class="keyword">if</span> self.__data[i] == e:</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">set</span><span class="params">(self, index, e)</span>:</span></span><br><span class="line">        <span class="string">"""修改具体位置的元素"""</span></span><br><span class="line">        <span class="keyword">if</span> index &lt; <span class="number">0</span> <span class="keyword">or</span> index &gt; self.__size:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Add failed.Illegal Index."</span>)</span><br><span class="line"></span><br><span class="line">        self.__data[index] = e</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""查找具体元素的索引位置"""</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size):</span><br><span class="line">            <span class="keyword">if</span> self.__data[i] == e:</span><br><span class="line">                <span class="keyword">return</span> i</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">"&#123;&#125;: capacity: &#123;&#125;"</span>.format(self.__data[:self.__size], self.get_capacity())</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__str__()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    arr = Array()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        arr.add_last(i)</span><br><span class="line">    print(arr.get_capacity())</span><br><span class="line"></span><br><span class="line">    arr.add(<span class="number">1</span>, <span class="string">'zwang'</span>)</span><br><span class="line">    print(arr.get_capacity())</span><br><span class="line"></span><br><span class="line">    arr.add_first(<span class="number">-1</span>)</span><br><span class="line">    print(arr)</span><br><span class="line"></span><br><span class="line">    arr.remove(<span class="number">8</span>)</span><br><span class="line">    print(arr)</span><br><span class="line"></span><br><span class="line">    arr.set(<span class="number">0</span>, <span class="number">999</span>)</span><br><span class="line">    print(arr)</span><br></pre></td></tr></table></figure>
+
+<h2 id="动态数组的时间复杂度"><a href="#动态数组的时间复杂度" class="headerlink" title="动态数组的时间复杂度"></a>动态数组的时间复杂度</h2><p>首先明确时间复杂度的基本概念：</p>
+<ul>
+<li>O(n),O(n^2)等大O描述的是算法的运行时间和输入数据之间的关系。</li>
+<li>大O描述的是渐进时间复杂度，即当n趋于无穷大的情况下，该算法的运行效率如何。</li>
+<li>除开特例，算法时间复杂度分析一般考虑最坏的情况，所以动态数组的时间复杂度视为O(n)。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>时间复杂度</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>add_last(e)</td>
+<td>O(1)</td>
+<td>直接在index为size的位置赋值即可，与数据的规模无关。</td>
+</tr>
+<tr>
+<td>add_first(e)</td>
+<td>O(n)</td>
+<td>要将每一个元素都向后移动。</td>
+</tr>
+<tr>
+<td>add(index, e)</td>
+<td>O(n/2) = O(n)</td>
+<td>index靠前，需要移动的元素更多，时间更长，反之亦然，平均而言是n/2，忽略常数，也是O(n)。</td>
+</tr>
+<tr>
+<td>resize()</td>
+<td>O(n)</td>
+<td>要把原来的元素全部复制一遍到新的扩容数组内。</td>
+</tr>
+<tr>
+<td>remove_last(e)</td>
+<td>O(1)</td>
+<td>同add操作，只需要移动最后一个元素。</td>
+</tr>
+<tr>
+<td>remove_first(e)</td>
+<td>O(n)</td>
+<td>同add操作，越靠前移动的元素越多。</td>
+</tr>
+<tr>
+<td>remove(index, e)</td>
+<td>O(n/2) = O(n)</td>
+<td>同add操作，取决于删除的index位置。</td>
+</tr>
+<tr>
+<td>set(index, e)</td>
+<td>O(1)</td>
+<td>数组最大的优势，支持随机访问。</td>
+</tr>
+<tr>
+<td>get(index)</td>
+<td>O(1)</td>
+<td>同set，只要知道索引，就可以直接访问。</td>
+</tr>
+</tbody></table>
+<p>小结：</p>
+<ul>
+<li>增：O(n)</li>
+<li>删： O(n)</li>
+<li>查：已知索引O(1)；未知索引O(n)</li>
+<li>改：已知索引O(1)；未知索引O(n)</li>
+</ul>
+<p>不难发现，所谓的动态，其实就是动态扩缩容，在容量不确定的情况下，随着新增元素动态扩增数组容量，随着元素的减少缩小数组容量。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"># Python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/05/Python-%E6%A0%88Stack/" rel="prev" title="[Python]栈Stack">
+      <i class="fa fa-chevron-left"></i> [Python]栈Stack
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/01/Python-%E5%8D%8F%E7%A8%8B/" rel="next" title="[Python]协程">
+      [Python]协程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

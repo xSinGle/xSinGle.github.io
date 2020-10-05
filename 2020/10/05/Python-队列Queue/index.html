@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本文将讲解Python通过动态数组实现队列Queue，以及Queue的一些基本特性。后续的文章中将采用链表方式再次实现队列，leetcode中与Queue或Stack相关的解实际都可以用list来操作。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Python]队列Queue">
+<meta property="og:url" content="http://localhost:4000/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文将讲解Python通过动态数组实现队列Queue，以及Queue的一些基本特性。后续的文章中将采用链表方式再次实现队列，leetcode中与Queue或Stack相关的解实际都可以用list来操作。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/LoopQueue%E5%8E%9F%E7%90%86.png">
+<meta property="article:published_time" content="2020-10-05T03:10:02.000Z">
+<meta property="article:modified_time" content="2020-10-05T03:19:36.443Z">
+<meta property="article:author" content="SinGle">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/LoopQueue%E5%8E%9F%E7%90%86.png">
+
+<link rel="canonical" href="http://localhost:4000/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Python]队列Queue | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#队列的时间复杂度"><span class="nav-number">1.</span> <span class="nav-text">队列的时间复杂度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#循环队列"><span class="nav-number">2.</span> <span class="nav-text">循环队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#循环队列的时间复杂度"><span class="nav-number">3.</span> <span class="nav-text">循环队列的时间复杂度</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Python]队列Queue
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-10-05 11:10:02 / Modified: 11:19:36" itemprop="dateCreated datePublished" datetime="2020-10-05T11:10:02+08:00">2020-10-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文将讲解Python通过动态数组实现队列Queue，以及Queue的一些基本特性。<br>后续的文章中将采用链表方式再次实现队列，leetcode中与Queue或Stack相关的解实际都可以用list来操作。</p>
+<a id="more"></a>
+
+<ul>
+<li>队列也是一种线性结构。</li>
+<li>相比数组，队列对应的操作是数组的子集。</li>
+<li>队列只能从一端(队尾)添加元素，只能从另一端(队首)取出元素。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ArrayQueue</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        self.__arr = Array()</span><br><span class="line">        self.__size = self.__arr.get_size()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">enqueue</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""入队：队尾添加元素"""</span></span><br><span class="line">        self.__arr.add_last(e)</span><br><span class="line">        self.__size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">dequeue</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""出队：队首移除元素"""</span></span><br><span class="line">        ret = self.__arr.remove_first()</span><br><span class="line">        self.__size -= <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> ret</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_front</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取队首元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__arr.get_first()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""获取队列大小"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""是否为空"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__size == <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        queue = [str(self.__arr.get(i)) <span class="keyword">for</span> i <span class="keyword">in</span> range(self.__size)]</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"ArrayQueue: [Front] &#123;&#125; [Tail]"</span>.format(<span class="string">"--&gt;"</span>.join(queue))</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__str__()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    q = ArrayQueue()</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        q.enqueue(i)</span><br><span class="line"></span><br><span class="line">    print(q)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        q.dequeue()</span><br><span class="line">        print(q)</span><br></pre></td></tr></table></figure>
+
+<h2 id="队列的时间复杂度"><a href="#队列的时间复杂度" class="headerlink" title="队列的时间复杂度"></a>队列的时间复杂度</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>时间复杂度</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>enqueue()</td>
+<td>O(1)</td>
+<td>均摊复杂度为O(1)</td>
+</tr>
+<tr>
+<td>dequeue()</td>
+<td>O(n)</td>
+<td>每次取出第一个元素，其他所有元素都要向前移动。</td>
+</tr>
+<tr>
+<td>get_front()</td>
+<td>O(1)</td>
+<td>直接取出队首元素。</td>
+</tr>
+<tr>
+<td>get_size()</td>
+<td>O(1)</td>
+<td>直接返回内部维护的size。</td>
+</tr>
+<tr>
+<td>is_empty()</td>
+<td>O(1)</td>
+<td>判断size。</td>
+</tr>
+</tbody></table>
+<p>数组队列与数组栈大致相同，主要区别是FIFO还是LIFO。数组队列有一个致命的缺陷，就是每一次出队dequeue，都要对所有的元素进行一次操作，当数据规模巨大的时候，性能将会非常差，因此有了下面的循环队列LoopQueue。</p>
+<h2 id="循环队列"><a href="#循环队列" class="headerlink" title="循环队列"></a>循环队列</h2><p><img src="/2020/10/05/Python-%E9%98%9F%E5%88%97Queue/LoopQueue%E5%8E%9F%E7%90%86.png" alt="LoopQueue原理"></p>
+<p>重点：</p>
+<ul>
+<li>维护了两个指针，front和tail。front指针永远指向队首元素，tail指针永远指向队尾元素的下一个位置，也就是下一次入队的位置。</li>
+<li>要确保每次插入都有至少一个空位，预设的队列容量len(self.data)必须多留一个空位，如用户期望存放10个元素，我们内部维护的队列长度为10+1=11。故意多留的空位用户无感知，所以当用户查看队列容量时，返回的值应该是10，也就是len(self.data)-1。</li>
+<li>维护front和tail指针，由于不再对每一个元素进行移动操作，需要通过取模运算让front和tail两个指针回到开头进行循环，计算方式为(指针 + 1) % 队列总长度，返回的就是该指针的下一个位置。</li>
+<li>当front == tail 的时候，队列为空，因为开始时队列中没有任何元素，两者都指向0。</li>
+<li>当(tail + 1) % 队列总长度 == front 的时候，队列为满，因为tail循环的下一个位置与front指向的位置重叠，此时需要激活扩容。</li>
+<li>扩容的原理和数组相同，创建新容积的队列，遍历所有元素即可。注意新队列元素的摆放位置是从0开始的，即当front不为0的时候，新队列中每个元素的index与旧队列中的index存在front的偏移量，所以new_data[index] = old_data[(index + 1) % 队列总长度]。</li>
+<li>由于在队首插入元素不再移动所有其他元素，只需要维护指针指向即可，所以最终的时间复杂度为O(1)。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LoopQueue</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    有意识的浪费一个空间，用于适应(tail + 1) % == front队列为满的情况，用户无感知。</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, capacity=<span class="number">10</span>)</span>:</span></span><br><span class="line">        <span class="comment"># 注意这里的capacity是用户认为的capacity，我们内部的list长度实际上是+1，所以取模运算的分母实际上为capacity+1</span></span><br><span class="line">        self.__data = [<span class="literal">None</span>] * (capacity + <span class="number">1</span>)</span><br><span class="line">        self.__front = <span class="number">0</span></span><br><span class="line">        self.__tail = <span class="number">0</span></span><br><span class="line">        self.__size = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_capacity</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""一个空间是故意浪费掉的，用户无感知，返回时要减去"""</span></span><br><span class="line">        <span class="keyword">return</span> len(self.__data) - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">is_empty</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""当tail == front的时候，队列中为空"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__tail == self.__front</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_size</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""当前有多少个元素"""</span></span><br><span class="line">        <span class="keyword">return</span> self.__size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">enqueue</span><span class="params">(self, e)</span>:</span></span><br><span class="line">        <span class="string">"""入队"""</span></span><br><span class="line">        <span class="comment"># 首先，如果队列满，就要进行扩容操作。</span></span><br><span class="line">        <span class="keyword">if</span> (self.__tail + <span class="number">1</span>) % self.get_capacity() == self.__front:</span><br><span class="line">            self._resize(self.get_capacity() * <span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 赋值</span></span><br><span class="line">        self.__data[self.__tail] = e</span><br><span class="line">        <span class="comment"># 维护tail指针，这里的分母是list的实际长度。</span></span><br><span class="line">        self.__tail = (self.__tail + <span class="number">1</span>) % len(self.__data)</span><br><span class="line">        self.__size += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">dequeue</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""出队"""</span></span><br><span class="line">        <span class="keyword">if</span> self.is_empty():</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Dequeue failed.Can not dequeue from an empty queue."</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 获取当前队首的元素返回。</span></span><br><span class="line">        ret = self.__data[self.__front]</span><br><span class="line">        <span class="comment"># 队首元素出队后，将其赋值为None</span></span><br><span class="line">        self.__data[self.__front] = <span class="literal">None</span></span><br><span class="line">        <span class="comment"># 维护front指针，对list长度进行取模获取最新的循环位置。</span></span><br><span class="line">        self.__front = (self.__front + <span class="number">1</span>) % len(self.__data)</span><br><span class="line">        self.__size -= <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 如果当前存储的元素数量等于队列容量(用户认为的容量)的四分之一，而且缩容的值不应为0。</span></span><br><span class="line">        <span class="keyword">if</span> self.__size == self.get_capacity() // <span class="number">4</span> <span class="keyword">and</span> self.__size // <span class="number">2</span> != <span class="number">0</span>:</span><br><span class="line">            self._resize(self.get_capacity() // <span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> ret</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_resize</span><span class="params">(self, new_capacity)</span>:</span></span><br><span class="line">        <span class="string">"""扩缩容"""</span></span><br><span class="line">        <span class="comment"># 创建新长度的list</span></span><br><span class="line">        new_data = [<span class="literal">None</span>] * new_capacity</span><br><span class="line">        <span class="comment"># 无论原来的循环队列如何放置元素，统一从0开始重新摆放，当前一共有size个元素。</span></span><br><span class="line">        <span class="keyword">for</span> index <span class="keyword">in</span> range(self.__size):</span><br><span class="line">            <span class="comment"># 由于front不一定为0，所以每一个新index与原index都存在front的偏移量</span></span><br><span class="line">            new_data[index] = self.__data[(index + self.__front) % len(self.__data)]</span><br><span class="line">        self.__data = new_data</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 重新从0开始摆放元素</span></span><br><span class="line">        self.__front = <span class="number">0</span></span><br><span class="line">        <span class="comment"># 当前有多少个元素，tail的index就在该元素后一个位置</span></span><br><span class="line">        self.__tail = self.__size</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_front</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="string">"""查看队首元素"""</span></span><br><span class="line">        <span class="keyword">if</span> self.is_empty():</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Can not get front element from an empty queue."</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> self.__data[self.__front]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># 两种情况，第一种是还没有开始循环，tail在front后面正常排序。</span></span><br><span class="line">        <span class="keyword">if</span> self.__tail &gt;= self.__front:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"LoopQueue: Front &#123;&#125; Tail, capacity: &#123;&#125;"</span>.format(self.__data[self.__front: self.__tail],</span><br><span class="line">                                                                   self.get_capacity())</span><br><span class="line">        <span class="comment"># 第二种已经开始循环，tail在front前面。</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"LoopQueue: Front &#123;&#125; Tail, capacity: &#123;&#125;"</span>.format(self.__data[self.__front:] +</span><br><span class="line">                                                                   self.__data[:self.__tail], self.get_capacity())</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__repr__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.__str__()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    loop_queue = LoopQueue(capacity=<span class="number">6</span>)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        loop_queue.enqueue(i)</span><br><span class="line">        print(loop_queue)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</span><br><span class="line">        loop_queue.dequeue()</span><br><span class="line">        print(loop_queue)</span><br></pre></td></tr></table></figure>
+
+<h2 id="循环队列的时间复杂度"><a href="#循环队列的时间复杂度" class="headerlink" title="循环队列的时间复杂度"></a>循环队列的时间复杂度</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>时间复杂度</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>enqueue()</td>
+<td>O(1) 均摊</td>
+<td>并不是每一次入队都会导致扩容，均摊下来视为O(1)。</td>
+</tr>
+<tr>
+<td>dequeue()</td>
+<td>O(1) 均摊</td>
+<td>并不是每一次出队都会导致缩容，均摊下来视为O(1)。</td>
+</tr>
+<tr>
+<td>get_front()</td>
+<td>O(1)</td>
+<td>直接取的front指针位置的元素即可。</td>
+</tr>
+<tr>
+<td>get_size()</td>
+<td>O(1)</td>
+<td>直接返回内部队列的长度。</td>
+</tr>
+<tr>
+<td>is_empty()</td>
+<td>O(1)</td>
+<td>直接判断front和tail两个指针是否相等。</td>
+</tr>
+</tbody></table>
+<p>与ArrayQueue主要的性能差别在于dequeue的操作，ArrayQueue的dequeue操作需要将队列中所有元素都向前移动一个位置，为O(n)级别，而LoopQueue中一般只需要维护指针的指向即可，为O(1)级别。(没有缩容的情况下)</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/06/Python-%E9%93%BE%E8%A1%A8LinkedList/" rel="prev" title="[Python]链表LinkedList">
+      <i class="fa fa-chevron-left"></i> [Python]链表LinkedList
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/05/Python-%E6%A0%88Stack/" rel="next" title="[Python]栈Stack">
+      [Python]栈Stack <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
