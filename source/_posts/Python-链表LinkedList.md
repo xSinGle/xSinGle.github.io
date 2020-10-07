@@ -1,7 +1,7 @@
 ---
-title: '[Python]链表LinkedList'
+title: '[数据结构]链表LinkedList'
 date: 2020-10-06 10:51:52
-tags: Python
+tags: Python, 数据结构
 ---
 本文将阐述什么是链表，用Python实现链表的增删改查功能，以及使用链表实现栈和队列。
 <!-- more -->

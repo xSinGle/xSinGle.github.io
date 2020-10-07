@@ -1,7 +1,7 @@
 ---
-title: '[Python]栈Stack'
+title: '[数据结构]栈Stack'
 date: 2020-10-05 11:04:37
-tags: Python
+tags: Python, 数据结构
 ---
 
 本文简要阐述了栈的基本概念以及应用，并通过Python实现栈的数据结构。

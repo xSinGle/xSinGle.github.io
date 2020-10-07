@@ -1,7 +1,7 @@
 ---
-title: '[Python]队列Queue'
+title: '[数据结构]队列Queue'
 date: 2020-10-05 11:10:02
-tags:
+tags: Python, 数据结构
 ---
 本文将讲解Python通过动态数组实现队列Queue，以及Queue的一些基本特性。
 后续的文章中将采用链表方式再次实现队列，leetcode中与Queue或Stack相关的解实际都可以用list来操作。

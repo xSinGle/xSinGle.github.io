@@ -1,7 +1,7 @@
 ---
-title: '[Python]动态数组Array'
+title: '[数据结构]动态数组Array'
 date: 2020-10-05 11:02:17
-tags: Python
+tags: Python, 数据结构
 ---
 
 本文简要阐述了Python如何实现动态数组，以及动态数组的一些特性。
