@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本文主要讲解了Flask中的上下文管理器概念，以及他们在框架中被使用的流程和方式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Flask] 上下文管理器AppContext与RequestContext">
+<meta property="og:url" content="http://localhost:4000/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文主要讲解了Flask中的上下文管理器概念，以及他们在框架中被使用的流程和方式。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://localhost:4000/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/Flask%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E6%B5%81%E7%A8%8B.png">
+<meta property="article:published_time" content="2020-10-13T08:42:19.000Z">
+<meta property="article:modified_time" content="2020-10-13T08:43:51.425Z">
+<meta property="article:author" content="SinGle">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://localhost:4000/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/Flask%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E6%B5%81%E7%A8%8B.png">
+
+<link rel="canonical" href="http://localhost:4000/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Flask] 上下文管理器AppContext与RequestContext | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#请求上下文RequestContext"><span class="nav-number">1.</span> <span class="nav-text">请求上下文RequestContext</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#request代理对象"><span class="nav-number">2.</span> <span class="nav-text">request代理对象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#session"><span class="nav-number">3.</span> <span class="nav-text">session</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#应用上下文AppContext"><span class="nav-number">4.</span> <span class="nav-text">应用上下文AppContext</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#current-app"><span class="nav-number">5.</span> <span class="nav-text">current_app</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#g"><span class="nav-number">6.</span> <span class="nav-text">g</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#上下文管理流程"><span class="nav-number">7.</span> <span class="nav-text">上下文管理流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">8.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Flask] 上下文管理器AppContext与RequestContext
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-10-13 16:42:19 / Modified: 16:43:51" itemprop="dateCreated datePublished" datetime="2020-10-13T16:42:19+08:00">2020-10-13</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文主要讲解了Flask中的上下文管理器概念，以及他们在框架中被使用的流程和方式。</p>
+<a id="more"></a>
+
+<h2 id="请求上下文RequestContext"><a href="#请求上下文RequestContext" class="headerlink" title="请求上下文RequestContext"></a>请求上下文RequestContext</h2><ul>
+<li>请求上下文管理请求对象<strong>Request</strong>，会话对象<strong>Session</strong></li>
+<li>当前请求的<strong>app</strong>应用，为了保证在一个请求周期内的任何时候任何地点访问到<strong>Request</strong>和<strong>Session</strong>，又不能发生循环导入的问题，<strong>flask</strong>使用request和<strong>session</strong>来代理当前请求的<strong>Request</strong>和<strong>Session</strong>。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">request = LocalProxy(partial(_lookup_req_object, <span class="string">"request"</span>))</span><br><span class="line">session = LocalProxy(partial(_lookup_req_object, <span class="string">"session"</span>))</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>flask框架处理请求的第一步就是创建请求上下文RequestContext。</li>
+<li>该类包含所有和request相关的信息，如果request为None，会自己创建并保存到RequestContext的request属性当中。</li>
+<li>该实例会在请求开始时创建，并推入_request_ctx_stack中，在请求结束时自动出栈(pop)。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RequestContext</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, app, environ, request=None)</span>:</span></span><br><span class="line">        self.app = app</span><br><span class="line">        <span class="keyword">if</span> request <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            request = app.request_class(environ) <span class="comment"># 使用app的Request对象创建一个实例</span></span><br><span class="line">        self.request = request <span class="comment"># 请求上下文的request</span></span><br><span class="line">        self.url_adapter = app.create_url_adapter(self.request)</span><br><span class="line">        self.flashes = <span class="literal">None</span></span><br><span class="line">        self.session = <span class="literal">None</span> <span class="comment"># 请求上下文的session</span></span><br><span class="line">        self._implicit_app_ctx_stack = [] <span class="comment"># 请求上下文的应用上下文临时存放点</span></span><br><span class="line">        self.preserved = <span class="literal">False</span></span><br><span class="line">        self._preserved_exc = <span class="literal">None</span></span><br><span class="line">        self._after_request_functions = []</span><br><span class="line">        self.match_request() <span class="comment"># 提取请求的路由创建request对象的Rule对象</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="request代理对象"><a href="#request代理对象" class="headerlink" title="request代理对象"></a>request代理对象</h2><ul>
+<li>指向当前请求的请求上下文RequestContext对象的request属性，即在请求上下文初始化时创建的请求对象，本质上是Request对象。</li>
+<li>生命周期为一次请求期间，当请求完成后被销毁。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Request</span><span class="params">(RequestBase)</span>:</span></span><br><span class="line">    url_rule = <span class="literal">None</span> <span class="comment"># 记录本次请求的Rule对象</span></span><br><span class="line">    view_args = <span class="literal">None</span> <span class="comment"># 本次请求的参数，指的是用路由转化器得到的参数</span></span><br><span class="line">    routing_exception = <span class="literal">None</span> <span class="comment"># 如果路由匹配失败，记录错误对象</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 重要的属性</span></span><br><span class="line">request.max_content_length <span class="comment"># 获取该请求允许的数据包最大字节数</span></span><br><span class="line">request.endpoint <span class="comment"># 获取该请求的rule的标识符</span></span><br><span class="line">request.url_charset <span class="comment"># 获取url的编码</span></span><br><span class="line">request.blueprint <span class="comment"># 请求属于的蓝图</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 和路由相关的属性</span></span><br><span class="line">print(request.url_root)</span><br><span class="line">print(request.url)</span><br><span class="line">print(request.url_rule)</span><br><span class="line">print(request.host_url)</span><br><span class="line">print(request.base_url)</span><br><span class="line">print(request.path) <span class="comment"># 路由路径，如/time</span></span><br><span class="line">print(request.full_path) <span class="comment"># 全路径，包括参数</span></span><br><span class="line">print(request.script_root)</span><br><span class="line">print(request.host) <span class="comment"># 服务器的ip</span></span><br><span class="line">print(request.access_route) <span class="comment"># 所有转发的ip地址列表</span></span><br><span class="line">print(request.remote_addr) <span class="comment"># 客户端远程地址</span></span><br><span class="line"><span class="comment"># 结果</span></span><br><span class="line">http://<span class="number">192.168</span><span class="number">.1</span><span class="number">.112</span>:<span class="number">8000</span>/</span><br><span class="line">http://192.168.1.112:8000/time/time?a=1</span><br><span class="line">/time/time</span><br><span class="line">http://<span class="number">192.168</span><span class="number">.1</span><span class="number">.112</span>:<span class="number">8000</span>/</span><br><span class="line">http://<span class="number">192.168</span><span class="number">.1</span><span class="number">.112</span>:<span class="number">8000</span>/time/time</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取请求数据</span></span><br><span class="line">print(request.is_json) <span class="comment"># 判断请求数据是否是json格式</span></span><br><span class="line">print(request.get_json()) <span class="comment"># 获取json数据</span></span><br><span class="line">print(request.args) <span class="comment"># 获取url中的参数作为字典返回,没有返回空对象</span></span><br><span class="line">print(request.form) <span class="comment"># 获取表单数据</span></span><br><span class="line">print(request.values) <span class="comment"># 同时获取表单数据和url参数</span></span><br><span class="line">print(request.data) <span class="comment"># 没有被其他格式解析成功的数据</span></span><br><span class="line">print(request.files) <span class="comment"># 获取上传的文件</span></span><br><span class="line">print(request.cookies) <span class="comment"># 获取cookie</span></span><br><span class="line">print(request.headers) <span class="comment"># 获取头部信息</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="session"><a href="#session" class="headerlink" title="session"></a>session</h2><ul>
+<li>session代理的是请求上下文RequestContext对象的session属性，其是在请求上下文被推送到栈的时候创建的session对象，类似一个字典的容器。<strong>每次请求创建的session实例都是新的，随着请求上下文被销毁而销毁。</strong></li>
+</ul>
+<h2 id="应用上下文AppContext"><a href="#应用上下文AppContext" class="headerlink" title="应用上下文AppContext"></a>应用上下文AppContext</h2><ul>
+<li>应用上下文对象AppContext会在必要时被创建和销毁，它不会在线程间移动，并且也不会在不同的请求之间共享；因此它可以作为在一次请求中临时存放数据的地方，其主要管理本次请求的当前应用app对象和临时全局g对象。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">current_app = LocalProxy(_find_app)</span><br><span class="line">g = LocalProxy(partial(_lookup_app_object, <span class="string">'g'</span>))</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>flask的应用上下文可以主动创建，在不需要发生http请求的情况下；当请求上下文被推送到栈后，该请求的应用上下文会跟着创建加入栈中。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AppContext</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, app)</span>:</span></span><br><span class="line">        self.app = app</span><br><span class="line">        self.url_adapter = app.create_url_adapter(<span class="literal">None</span>)</span><br><span class="line">        self.g = app.app_ctx_globals_class() <span class="comment"># app的全局变量</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="current-app"><a href="#current-app" class="headerlink" title="current_app"></a>current_app</h2><ul>
+<li>current_app代理的就是当前的应用，我们可以在业务处理的任何时候通过current_app获取应用app的任何属性，之所以要这样做是为了避免app对象被到处显性传递造成循环导入的错误。<strong>current_app存在于应用上下文活跃期间，会在请求处理完成后，随着应用上下文销毁而销毁</strong></li>
+<li>current_app必须在应用上下文被创建并且被推送后才能使用。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> current_app</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"><span class="keyword">with</span> app.app_context():</span><br><span class="line">    current_app.url_map</span><br></pre></td></tr></table></figure>
+
+<h2 id="g"><a href="#g" class="headerlink" title="g"></a>g</h2><ul>
+<li>g一般的用法是在请求期间管理资源，其指向的是当前应用的app_ctx_globals_class属性，是一个_AppCtxGlobals对象；g对象是随着应用上下文生存或死亡。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">_AppCtxGlobals</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="comment"># 从g中获取数据</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get</span><span class="params">(self, name, default=None)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    <span class="comment"># 获取数据并且弹出</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">pop</span><span class="params">(self, name, default=_sentinel)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    <span class="comment"># 在g中添加键值对，如果存在则忽略</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setdefault</span><span class="params">(self, name, default=None)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>我们可以将g对象看做dict的数据结构，它支持g.ab方式获取值和赋值。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> app.app_context():</span><br><span class="line">    g.ab = <span class="string">'name'</span> <span class="comment"># 将&#123;‘ab’:'name'&#125;键值对添加到g中</span></span><br><span class="line">    x = g.ab <span class="comment"># 获取ab的值，如果没有会报错，所以推荐使用g.get('ab')方法</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="上下文管理流程"><a href="#上下文管理流程" class="headerlink" title="上下文管理流程"></a>上下文管理流程</h2><p><img src="/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/Flask%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E6%B5%81%E7%A8%8B.png" alt="Flask上下文管理流程"></p>
+<ul>
+<li>一个请求进入</li>
+<li>创建请求上下文<strong>RequestContext</strong></li>
+<li>请求上下文入栈<strong>RequestContext</strong>入栈</li>
+<li>创建该请求的应用上下文<strong>AppContext</strong></li>
+<li>应用上下文<strong>AppContext</strong>入栈(<strong>RequestContext</strong>入栈后，会检查_app_ctx_stack栈顶是否为空，如果为空，flask会主动进行入栈。)</li>
+<li>处理逻辑</li>
+<li>请求上下文<strong>RequestContext</strong>出栈</li>
+<li>应用上下文<strong>AppContext</strong>出栈</li>
+</ul>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ul>
+<li>请求上下文面向开发者使用的对象主要是request和session</li>
+<li>应用上下文面向开发者使用的对象主要是current_app和g</li>
+<li>一次请求期间请求上下文创建后创建对应本次请求的应用上下文</li>
+<li>请求上下文一般不可以单独存在，因为创建请求上下文需要请求数据作为参数，但是应用上下文可以单独存在并且可以手动推送。(with语句构建上下文，在单元测试中常用，因为单元测试中没有请求进来，只能手动入栈出栈)</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/13/Flask-Flask-SQLAlchemy/" rel="next" title="[Flask] Flask-SQLAlchemy">
+      [Flask] Flask-SQLAlchemy <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

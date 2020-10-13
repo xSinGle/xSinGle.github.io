@@ -22,19 +22,24 @@
     var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
   </script>
 
-  <meta property="og:type" content="article">
-<meta property="og:title" content="RDD详解[RDD抽象类][接口]">
-<meta property="og:url" content="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/index.html">
+  <meta name="description" content="本文主要讲解MySQL两种主要引擎MyISAM与Innodb的区别。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[MySQL] MyISAM与InnoDB引擎区别">
+<meta property="og:url" content="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/index.html">
 <meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文主要讲解MySQL两种主要引擎MyISAM与Innodb的区别。">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/%5BRDD%E6%8A%BD%E8%B1%A1%E7%B1%BB%5D%5B%E6%8E%A5%E5%8F%A3%5D.png">
-<meta property="article:published_time" content="2020-04-12T14:30:45.000Z">
-<meta property="article:modified_time" content="2020-08-09T03:49:11.194Z">
+<meta property="og:image" content="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/MyISAM%E4%B8%BB%E7%B4%A2%E5%BC%95.png">
+<meta property="og:image" content="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/MyISAM%E8%BE%85%E7%B4%A2%E5%BC%95.png">
+<meta property="og:image" content="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/innodb%E4%B8%BB%E7%B4%A2%E5%BC%95.png">
+<meta property="og:image" content="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/innodb%E8%BE%85%E7%B4%A2%E5%BC%95.png">
+<meta property="article:published_time" content="2020-10-13T07:18:58.000Z">
+<meta property="article:modified_time" content="2020-10-13T07:31:24.590Z">
 <meta property="article:author" content="SinGle">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/%5BRDD%E6%8A%BD%E8%B1%A1%E7%B1%BB%5D%5B%E6%8E%A5%E5%8F%A3%5D.png">
+<meta name="twitter:image" content="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/MyISAM%E4%B8%BB%E7%B4%A2%E5%BC%95.png">
 
-<link rel="canonical" href="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/">
+<link rel="canonical" href="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/">
 
 
 <script class="page-configurations">
@@ -47,7 +52,7 @@
   };
 </script>
 
-  <title>RDD详解[RDD抽象类][接口] | SinGle's Cabin</title>
+  <title>[MySQL] MyISAM与InnoDB引擎区别 | SinGle's Cabin</title>
   
 
 
@@ -148,7 +153,7 @@
 
       <!--noindex-->
       <section class="post-toc-wrap sidebar-panel">
-          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#compute"><span class="nav-number">1.</span> <span class="nav-text">compute</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#getPartitions"><span class="nav-number">2.</span> <span class="nav-text">getPartitions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#getDependencies"><span class="nav-number">3.</span> <span class="nav-text">getDependencies</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#getPreferredLocations"><span class="nav-number">4.</span> <span class="nav-text">getPreferredLocations</span></a></li></ol></div>
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#MyISAM"><span class="nav-number">1.</span> <span class="nav-text">MyISAM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Inoodb"><span class="nav-number">2.</span> <span class="nav-text">Inoodb</span></a></li></ol></div>
       </section>
       <!--/noindex-->
 
@@ -203,7 +208,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -216,7 +221,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          RDD详解[RDD抽象类][接口]
+          [MySQL] MyISAM与InnoDB引擎区别
         </h1>
 
         <div class="post-meta">
@@ -225,16 +230,10 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
+              
 
-              <time title="Created: 2020-04-12 22:30:45" itemprop="dateCreated datePublished" datetime="2020-04-12T22:30:45+08:00">2020-04-12</time>
+              <time title="Created: 2020-10-13 15:18:58 / Modified: 15:31:24" itemprop="dateCreated datePublished" datetime="2020-10-13T15:18:58+08:00">2020-10-13</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-08-09 11:49:11" itemprop="dateModified" datetime="2020-08-09T11:49:11+08:00">2020-08-09</time>
-              </span>
 
           
 
@@ -247,21 +246,44 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><img src="/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E6%8E%A5%E5%8F%A3/%5BRDD%E6%8A%BD%E8%B1%A1%E7%B1%BB%5D%5B%E6%8E%A5%E5%8F%A3%5D.png" alt="[RDD抽象类][接口]"></p>
+        <p>本文主要讲解MySQL两种主要引擎MyISAM与Innodb的区别。</p>
 <a id="more"></a>
 
-<p>RDD抽象类内容较多，这里选择分类进行解析。首先是接口，RDD抽象类定义了4个接口，<strong>compute</strong>,<strong>getPartitions</strong>,<strong>getDependencies</strong>,<strong>getPreferredLocations</strong>，分别用于<strong>计算RDD分区</strong>，<strong>获取RDD分区</strong>，<strong>获取RDD依赖</strong>，<strong>获取分区偏好位置</strong>。除getPreferredLocations外，皆由子类进行实现。</p>
-<h2 id="compute"><a href="#compute" class="headerlink" title="compute"></a><strong>compute</strong></h2><p><strong>对RDD的分区进行计算</strong><br>*”由子类实现 计算所提供的分区”*</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment">* :: DeveloperApi :: </span></span><br><span class="line"><span class="comment">* Implemented by subclasses to compute a given partition.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="meta">@DeveloperApi</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">compute</span></span>(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[<span class="type">T</span>]</span><br></pre></td></tr></table></figure>
-
-<h2 id="getPartitions"><a href="#getPartitions" class="headerlink" title="getPartitions"></a><strong>getPartitions</strong></h2><p><strong>获取当前RDD的所有分区</strong><br>“由子类实现 返回该RDD的所有分区的数组”</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Implemented by subclasses to return the set of partitions in this RDD. */</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>]</span><br></pre></td></tr></table></figure>
-
-<h2 id="getDependencies"><a href="#getDependencies" class="headerlink" title="getDependencies"></a><strong>getDependencies</strong></h2><p><strong>返回当前RDD的所有依赖</strong></p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Implemented by subclasses to return how this RDD depends on parent RDDs.*/</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getDependencies</span></span>: <span class="type">Seq</span>[<span class="type">Dependency</span>[_]] = deps</span><br></pre></td></tr></table></figure>
-
-<h2 id="getPreferredLocations"><a href="#getPreferredLocations" class="headerlink" title="getPreferredLocations"></a><strong>getPreferredLocations</strong></h2><p><strong>获取某一分区的偏好位置</strong><br>“(可选)可由子类重写 指明优先选取的位置”</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*Optionally overridden by subclasses to specify placement preferences.*/</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPreferredLocations</span></span>(split: <span class="type">Partition</span>): <span class="type">Seq</span>[<span class="type">String</span>] = <span class="type">Nil</span></span><br></pre></td></tr></table></figure>
+<h2 id="MyISAM"><a href="#MyISAM" class="headerlink" title="MyISAM"></a>MyISAM</h2><ol>
+<li>不支持事务，但是整个操作是原子性的。</li>
+<li>不支持外键，支持表锁，每次锁住的是整张表。<ul>
+<li>表共享读锁，在对MyISAM表进行读操作时，不会阻塞其他表的读请求，但是会阻塞其他用户对表的写请求。</li>
+<li>对其进行写操作时会阻塞对同一张表的读操作和写操作。</li>
+</ul>
+</li>
+<li>一个MyISAM表有3个文件，索引文件，表结构文件，数据文件。</li>
+<li>存储表的总行数，执行select count(*) from table时只要简单的读出保存好的行数即可。但是带有where条件语句的count就不能直接返回，也要进行全表扫描。</li>
+<li>采用非聚集索引，索引文件数据域存储指向数据文件的指针。</li>
+<li>支持全文索引和空间索引。</li>
+<li>对于AUTO_INCREMENT类型的字段，在MyISAM表中，可以和其他字段一起建立联合索引。</li>
+</ol>
+<p>MyISAM主索引图：索引文件的每个数据域存储指向数据文件的指针(每个索引指向了数据物理地址)。</p>
+<p><img src="/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/MyISAM%E4%B8%BB%E7%B4%A2%E5%BC%95.png" alt="MyISAM主索引"></p>
+<p>MyISAM辅索引图：同上，但是不用保证唯一性。</p>
+<p><img src="/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/MyISAM%E8%BE%85%E7%B4%A2%E5%BC%95.png" alt="MyISAM辅索引"></p>
+<h2 id="Inoodb"><a href="#Inoodb" class="headerlink" title="Inoodb"></a>Inoodb</h2><ol>
+<li>支持事务，支持事务的4中隔离级别；是一种具有事务(commit)，回滚(rollback)和崩溃修复能力(crash recovery capabilities)的事务安全(transaction-safe(ACID compliant))型表。</li>
+<li>支持行锁和外键约束，因此可以支持写并发。</li>
+<li>不存储总行数；故执行select count(<em>) from table时，InnoDB要扫描全表来计算有多少行。注意的是，当count(</em>)语句包含where条件时，两种表的操作是一样的。(都要扫全表)</li>
+<li>对于AUTO_INCREMENT类型的字段，InnoDB中必须包含只有该字段的索引。</li>
+<li>DELETE FROM table时，InnoDB不会重新建表，而是一行一行的删除。</li>
+<li>一个Innodb表可能存储在一个文件内(共享表空间，表大小不受操作系统限制)，也可能为多个文件(设置为独立表空间，表大小受操作系统限制)。</li>
+<li>主键索引采用聚集索引(索引的数据域存储数据文件本身，即通过主键来查找行数据)，辅索引的数据域存储主键的值；因此从辅索引查找数据，需要先通过辅索引找到主键值，再访问主键索引；最好使用自增主键，防止插入数据时，为维持B+树结构，文件的大调整。</li>
+</ol>
+<p>InnoDB主索引图：索引位置上存储的直接是数据本身。</p>
+<p><img src="/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/innodb%E4%B8%BB%E7%B4%A2%E5%BC%95.png" alt="InnoDB主索引"></p>
+<p>InnoDB辅索引图：</p>
+<p><img src="/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/innodb%E8%BE%85%E7%B4%A2%E5%BC%95.png" alt="InnoDB辅索引"></p>
+<p>小结：</p>
+<ol>
+<li>MyISAM管理非事务表，提供高速存储和检索以及全文搜索能力，适合应用中执行大量select操作。</li>
+<li>InnoDB用于事务处理，具有ACID事务支持等特性，适合应用中执行大量的insert和update操作。</li>
+</ol>
 
     </div>
 
@@ -277,12 +299,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2020/04/13/RDD%E8%AF%A6%E8%A7%A3-RDD%E6%8A%BD%E8%B1%A1%E7%B1%BB-%E5%B1%9E%E6%80%A7/" rel="prev" title="RDD详解[RDD抽象类][属性]">
-      <i class="fa fa-chevron-left"></i> RDD详解[RDD抽象类][属性]
+    <a href="/2020/10/13/Flask-Flask-SQLAlchemy/" rel="prev" title="[Flask] Flask-SQLAlchemy">
+      <i class="fa fa-chevron-left"></i> [Flask] Flask-SQLAlchemy
     </a></div>
       <div class="post-nav-item">
-    <a href="/2020/04/12/RDD%E8%AF%A6%E8%A7%A3-RDD%E4%BE%9D%E8%B5%96-Denpendency/" rel="next" title="RDD详解[RDD依赖][Denpendency]">
-      RDD详解[RDD依赖][Denpendency] <i class="fa fa-chevron-right"></i>
+    <a href="/2020/10/13/%E7%AE%97%E6%B3%95-%E5%86%92%E6%B3%A1-%E5%BD%92%E5%B9%B6-%E5%BF%AB%E6%8E%92-%E6%A1%B6%E6%8E%92-Python%E5%AE%9E%E7%8E%B0/" rel="next" title="[算法] 冒泡|归并|快排|桶排 Python实现">
+      [算法] 冒泡|归并|快排|桶排 Python实现 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>

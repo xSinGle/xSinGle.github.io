@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}}};
+  </script>
+
+  <meta name="description" content="本文主要讲解了Flask-SQLAlchemy的基本使用方法。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[Flask] Flask-SQLAlchemy">
+<meta property="og:url" content="http://localhost:4000/2020/10/13/Flask-Flask-SQLAlchemy/index.html">
+<meta property="og:site_name" content="SinGle&#39;s Cabin">
+<meta property="og:description" content="本文主要讲解了Flask-SQLAlchemy的基本使用方法。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-10-13T07:34:44.000Z">
+<meta property="article:modified_time" content="2020-10-13T07:35:20.383Z">
+<meta property="article:author" content="SinGle">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://localhost:4000/2020/10/13/Flask-Flask-SQLAlchemy/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>[Flask] Flask-SQLAlchemy | SinGle's Cabin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">SinGle's Cabin</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#启动方式"><span class="nav-number">1.</span> <span class="nav-text">启动方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动示例"><span class="nav-number">2.</span> <span class="nav-text">启动示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#建立ORM模型"><span class="nav-number">3.</span> <span class="nav-text">建立ORM模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#视图函数入库"><span class="nav-number">4.</span> <span class="nav-text">视图函数入库</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">SinGle</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2020/10/13/Flask-Flask-SQLAlchemy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SinGle">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SinGle's Cabin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          [Flask] Flask-SQLAlchemy
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2020-10-13 15:34:44 / Modified: 15:35:20" itemprop="dateCreated datePublished" datetime="2020-10-13T15:34:44+08:00">2020-10-13</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文主要讲解了Flask-SQLAlchemy的基本使用方法。</p>
+<a id="more"></a>
+
+<h2 id="启动方式"><a href="#启动方式" class="headerlink" title="启动方式"></a>启动方式</h2><ul>
+<li>SQLALCHEMY_DATABASE_URI 为 SQLAlchemy连接字符串</li>
+<li>SQLALCHEMY_POOL_SIZE 为 SQLAlchemy连接池大小</li>
+<li>SQLALCHEMY_POOL_TIMEOUT 为 SQLAlchemy连接超时时间</li>
+<li>create_app方法除了创建Flask app实例，注册我们编写的视图函数(蓝图)，SQLAlchemy的配置也使用app.config进行加载</li>
+<li>注意，db = SQLAlchemy创建实例后，db.init_app(app)需要传入app</li>
+</ul>
+<p>另外官方注释对于SQLAlchemy有两种启动方式：</p>
+<ul>
+<li>第一种是将实例与具体的某个app直接绑定</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">app = Flask(__name__)</span><br><span class="line">db = SQLAlchemy(app)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第二种是创建实例，后续在app中调用db.init_app(app)对其进行绑定支持。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">db = SQLAlchemy()</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_app</span><span class="params">()</span>:</span></span><br><span class="line">    app = Flask(__name__)</span><br><span class="line">    db.init_app()</span><br><span class="line">    <span class="keyword">return</span> app</span><br></pre></td></tr></table></figure>
+
+<p>两者的区别在于，第一种方式使用create_all和drop_all总是能够成功。而第二种方式需要app_context退出后才能成功。</p>
+<h2 id="启动示例"><a href="#启动示例" class="headerlink" title="启动示例"></a>启动示例</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导入Flask-SQLAlchemy中的SQLAlchemy</span></span><br><span class="line"><span class="keyword">from</span> flask_sqlalchemy <span class="keyword">import</span> SQLAlchemy</span><br><span class="line"></span><br><span class="line"><span class="comment"># 实例化SQLAlchemy</span></span><br><span class="line">db = SQLAlchemy()</span><br><span class="line"><span class="comment"># PS : 实例化SQLAlchemy的代码必须要在引入蓝图之前</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> .views.users <span class="keyword">import</span> user</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_app</span><span class="params">()</span>:</span></span><br><span class="line">    app = Flask(__name__)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 初始化App配置</span></span><br><span class="line">    app.config[<span class="string">"SQLALCHEMY_DATABASE_URI"</span>] = <span class="string">"mysql+pymysql://root:DragonFire@127.0.0.1:3306/dragon?charset=utf8"</span></span><br><span class="line">    app.config[<span class="string">"SQLALCHEMY_POOL_SIZE"</span>] = <span class="number">5</span></span><br><span class="line">    app.config[<span class="string">"SQLALCHEMY_POOL_TIMEOUT"</span>] = <span class="number">15</span></span><br><span class="line">    app.config[<span class="string">"SQLALCHEMY_TRACK_MODIFICATIONS"</span>] = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 初始化SQLAlchemy , 本质就是将以上的配置读取出来</span></span><br><span class="line">    db.init_app(app)</span><br><span class="line">    app.register_blueprint(user)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> app</span><br></pre></td></tr></table></figure>
+
+<h2 id="建立ORM模型"><a href="#建立ORM模型" class="headerlink" title="建立ORM模型"></a>建立ORM模型</h2><ul>
+<li>过去在models.py中建表需要”from sqlalchemy.ext.declarative import declarative_base”,”Base = declarative_base()”，最后才能在自建的table中继承该Base类。而现在Flask-SQLAlchemy对其进行了封装，直接使用db.model即可。</li>
+<li>注意我们使用的是第二种方式创建的db实例，所以在没有请求进入的时候，需要使用with语句创建app_context应用上下文，才能使用create_all,drop_all进行操作。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> MyApp <span class="keyword">import</span> db</span><br><span class="line"></span><br><span class="line"><span class="comment"># 建立User数据表</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Users</span><span class="params">(db.Model)</span>:</span> <span class="comment"># Base实际上就是 db.Model</span></span><br><span class="line">    __tablename__ = <span class="string">"users"</span></span><br><span class="line">    __table_args__ = &#123;<span class="string">"useexisting"</span>: <span class="literal">True</span>&#125;</span><br><span class="line">    <span class="comment"># 在SQLAlchemy 中我们是导入了Column和数据类型 Integer 在这里</span></span><br><span class="line">    <span class="comment"># 就和db.Model一样,已经封装好了</span></span><br><span class="line">    id = db.Column(db.Integer,primary_key=<span class="literal">True</span>)</span><br><span class="line">    username = db.Column(db.String(<span class="number">32</span>))</span><br><span class="line">    password = db.Column(db.String(<span class="number">32</span>))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    <span class="keyword">from</span> MyApp <span class="keyword">import</span> create_app</span><br><span class="line">    app = create_app()</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 离线脚本:</span></span><br><span class="line">    <span class="keyword">with</span> app.app_context():</span><br><span class="line">        db.drop_all()</span><br><span class="line">        db.create_all()</span><br></pre></td></tr></table></figure>
+
+<h2 id="视图函数入库"><a href="#视图函数入库" class="headerlink" title="视图函数入库"></a>视图函数入库</h2><ul>
+<li>过去在SQLAlchemy中操作需要创建session实例，即”from sqlalchemy.orm import sessionmaker”,”session = sessionmaker(engine)”，现在Flask-SQLAlchemy也做好了封装，直接使用db.session即可。</li>
+<li>本例在登陆请求后直接入库然后查询是否入库成功，模拟登陆请求。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Blueprint, request, render_template</span><br><span class="line"></span><br><span class="line">user = Blueprint(<span class="string">"user"</span>, __name__)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> MyApp.models <span class="keyword">import</span> Users</span><br><span class="line"><span class="keyword">from</span> MyApp <span class="keyword">import</span> db</span><br><span class="line"></span><br><span class="line"><span class="meta">@user.route("/login",methods=["POST","GET"])</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">user_login</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">if</span> request.method == <span class="string">"POST"</span>:</span><br><span class="line">        username = request.form.get(<span class="string">"username"</span>)</span><br><span class="line">        password = request.form.get(<span class="string">"password"</span>)</span><br><span class="line"></span><br><span class="line">        db.session.add(Users(username=username,password=password))</span><br><span class="line">        db.session.commit()</span><br><span class="line"></span><br><span class="line">        user_info = Users.query.filter(Users.username == username <span class="keyword">and</span> User.password == password).first()</span><br><span class="line">        print(user_info.username)</span><br><span class="line">        <span class="keyword">if</span> user_info:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">f"登录成功<span class="subst">&#123;user_info.username&#125;</span>"</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> render_template(<span class="string">"login.html"</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/13/Flask-%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8AppContext%E4%B8%8ERequestContext/" rel="prev" title="[Flask] 上下文管理器AppContext与RequestContext">
+      <i class="fa fa-chevron-left"></i> [Flask] 上下文管理器AppContext与RequestContext
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/13/MySQL-MyISAM%E4%B8%8EInnoDB%E5%BC%95%E6%93%8E%E5%8C%BA%E5%88%AB/" rel="next" title="[MySQL] MyISAM与InnoDB引擎区别">
+      [MySQL] MyISAM与InnoDB引擎区别 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SinGle</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://single-cabin.com/" class="theme-link" rel="noopener" target="_blank">SinGle-Cabin</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
